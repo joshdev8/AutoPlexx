@@ -1,0 +1,315 @@
+---
+# docker-compose -f ~/docker/docker-compose.yml up -d
+version: "3.3"
+networks:
+  internal:
+    driver: bridge
+
+services:
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    restart: always
+    network_mode: 'bridge'
+    # command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${USERDIR}/docker/portainer/data:/data
+      - '/etc/localtime:/etc/localtime:ro'
+    ports:
+      - "9000:9000"
+    environment:
+      - TZ=${TZ}
+      - PUID=${PUID}
+      - PGID=${PGID}
+
+  plexms:
+    container_name: plexms
+    restart: always
+    image: plexinc/pms-docker:plexpass
+    volumes:
+      - ${USERDIR}/docker/plexms:/config
+      - ${USERDIR}/Downloads/plex_tmp:/transcode
+      - /media/media:/media
+      - /disks/seagate1:/seagate1
+      - /disks/seagate3:/seagate3
+      - /disks/transcend:/transcend
+      - /disks/wdeasystore:/wdeasystore
+      - /disks/wdeasystore2:/wdeasystore2
+      - ${USERDIR}/docker/certs:/certs
+    network_mode: host
+    environment:
+      - TZ=${TZ}
+      - HOSTNAME=${PLEX_HOSTNAME}
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - PLEX_UID=${PUID}
+      - PLEX_GID=${PGID}
+      - ADVERTISE_IP=${PLEX_ADVERTISE_IP}
+
+  tautulli:
+    image: ghcr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    restart: always
+    volumes:
+      - ${USERDIR}/docker/plexpy:/config
+      - /var/log/plexpy:/logs:ro
+      - ${USERDIR}/docker/certs:/certs
+    ports:
+      - "8181:8181"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+  watchtower:
+    container_name: watchtower
+    restart: always
+    image: v2tec/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --schedule "0 0 4 * * *" --cleanup
+
+  transmission-vpn:
+    container_name: transmission-vpn
+    image: haugene/transmission-openvpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    restart: always
+    ports:
+    - "9091:9091"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${USERDIR}/docker/transmission-vpn:/data
+      - ${USERDIR}/docker/certs:/certs
+      - ${USERDIR}/Downloads:/data/watch
+      - ${USERDIR}/Downloads/completed:/data/completed
+      - ${USERDIR}/Downloads/incomplete:/data/incomplete
+    environment:
+      - OPENVPN_PROVIDER=${OPENVPN_PROVIDER}
+      - OPENVPN_USERNAME=${OPENVPN_USERNAME}
+      - OPENVPN_PASSWORD=${PASSWORD}
+      - OPENVPN_CONFIG=${OPENVPN_CONFIG} #optional line
+      - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60 --mute-replay-warnings
+      - LOCAL_NETWORK=192.168.86.0/24
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - TRANSMISSION_RPC_AUTHENTICATION_REQUIRED=true
+      - TRANSMISSION_RPC_HOST_WHITELIST="127.0.0.*,192.168.*.*"
+      - TRANSMISSION_RPC_PASSWORD=${PASSWORD}
+      - TRANSMISSION_RPC_USERNAME=${TRANSMISSION_USERNAME}
+      - TRANSMISSION_UMASK=2
+      - TRANSMISSION_RATIO_LIMIT_ENABLED=true
+      - TRANSMISSION_RATIO_LIMIT=0
+      # - ENABLE_UFW=true
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: "sonarr"
+    volumes:
+      - ${USERDIR}/docker/sonarr:/config
+      - /disks/seagate1:/seagate1
+      - ${USERDIR}/Downloads/completed:/data/completed
+      - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
+      - /disks/seagate3:/seagate3
+      - /disks/wdeasystore:/wdeasystore
+      - /disks/wdeasystore2:/wdeasystore2
+      - "/etc/localtime:/etc/localtime:ro"
+      - ${USERDIR}/docker/certs:/certs
+    ports:
+        - "8989:8989"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+  # lidarr:
+  #   image: linuxserver/lidarr:latest
+  #   container_name: "lidarr"
+  #   volumes:
+  #     - ${USERDIR}/docker/lidarr:/config
+  #     - /disks/seagate1:/seagate1
+  #     - /disks/seagate2:/seagate2
+  #     - ${USERDIR}/Downloads/completed:/data/completed
+  #     - /disks/seagate3:/seagate3
+  #     - /disks/wdeasystore:/wdeasystore
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - ${USERDIR}/docker/certs:/certs
+  #   restart: always
+  #   ports:
+  #     - "8686:8686"
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TZ}
+
+  jackett:
+    image: "linuxserver/jackett"
+    container_name: "jackett"
+    volumes:
+      - ${USERDIR}/docker/jackett:/config
+      - "/etc/localtime:/etc/localtime:ro"
+      - ${USERDIR}/docker/certs:/certs
+    ports:
+      - "9117:9117"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: "radarr"
+    volumes:
+      - ${USERDIR}/docker/radarr:/config
+      - ${USERDIR}/media/movies:/movies
+      - "/etc/localtime:/etc/localtime:ro"
+      - ${USERDIR}/docker/certs:/certs
+      - ${USERDIR}/Downloads/completed:/data/completed
+      - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
+      - /disks/seagate1:/seagate1
+      - /disks/seagate3:/seagate3
+      - /disks/wdeasystore:/wdeasystore
+      - /disks/wdeasystore2:/wdeasystore2
+    ports:
+      - "7878:7878"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+  influxdb:
+    image: influxdb:2.1.1
+    volumes:
+      - influxdb-storage:/var/lib/influxdb2:rw
+    env_file:
+      - .env
+    entrypoint: ["./entrypoint.sh"]
+    restart: on-failure:10
+    ports:
+      - ${DOCKER_INFLUXDB_INIT_PORT}:8086
+
+  telegraf:
+    image: telegraf:1.19
+    volumes:
+      - ${TELEGRAF_CFG_PATH}:/etc/telegraf/telegraf.conf:rw
+      - /disks/seagate1:/seagate1
+      - /disks/seagate3:/seagate3
+      - /disks/wdeasystore:/wdeasystore
+      - /disks/wdeasystore2:/wdeasystore2
+    env_file:
+      - .env
+    depends_on:
+      - influxdb
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    volumes:
+      - grafana-storage:/var/lib/grafana:rw
+    depends_on:
+      - influxdb
+    ports:
+      - ${GRAFANA_PORT}:3000
+  
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/docker/bazarr/config:/config
+      - /disks/wdeasystore:/wdeasystore
+      - /disks/wdeasystore2:/wdeasystore2
+      - /disks/seagate1:/seagate1
+      - /disks/seagate3:/seagate3
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
+  netdata:
+    image: netdata/netdata
+    container_name: netdata2
+    ports:
+      - 19999:19999
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+  
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/docker/overseer/config:/config
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+
+  plex-meta-manager:
+    image: lscr.io/linuxserver/plex-meta-manager:latest
+    container_name: plex-meta-manager
+    environment:
+      - PMM_CONFIG=/config/config.yml #optional
+      - PMM_TIME=03:00 #optional
+      - PMM_RUN=False #optional
+      - PMM_TEST=False #optional
+      - PMM_NO_MISSING=False #optional
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/docker/plex-meta-manager/config:/config
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.21.0
+    ports:
+      - 9090:9090
+    volumes:
+      - ${USERDIR}/docker/prometheus:/prometheus
+    command: --web.enable-lifecycle  --config.file=/prometheus/prometheus.yml
+  
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/docker/prowlarr:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
+  grafana-storage:
+  influxdb-storage:
+  prometheus-data:

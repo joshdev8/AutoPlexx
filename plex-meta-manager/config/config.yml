@@ -1,0 +1,94 @@
+libraries:                                      # This is called out once within the config.yml file
+  Movies:                                       # Each library must match the Plex library name
+    metadata_path:
+    - file: config/Movies.yml
+    - folder: config/Movies/
+    - git: meisnate12/MovieCharts
+    overlay_path:
+    - remove_overlays: false
+    - file: /config/Movies Overlays.yml
+  TV Shows:
+    metadata_path:
+    - file: config/TV Shows.yml
+    - folder: config/TV Shows/
+    - git: meisnate12/ShowCharts
+    overlay_path:
+    - remove_overlays: false
+    - file: /config/TV Shows Overlays.yml
+settings:
+  cache: true
+  cache_expiration: 60
+  asset_directory: config/assets
+  asset_folders: false
+  asset_depth: 0
+  create_asset_folders: false
+  dimensional_asset_rename: false
+  download_url_assets: true
+  show_missing_season_assets: false
+  show_missing_episode_assets: false
+  show_asset_not_needed: true
+  sync_mode: append
+  minimum_items: 1
+  default_collection_order:
+  delete_below_minimum: true
+  delete_not_scheduled: false
+  run_again_delay: 2
+  missing_only_released: false
+  only_filter_missing: false
+  show_unmanaged: true
+  show_filtered: false
+  show_options: false
+  show_missing: true
+  show_missing_assets: true
+  save_missing: true
+  tvdb_language: eng
+  ignore_ids:
+  ignore_imdb_ids:
+  item_refresh_delay: 0
+  verify_ssl: false
+  custom_repo:
+  playlist_sync_to_users: all
+  prioritize_assets: false
+  playlist_report: true
+  check_nightly: false
+  show_unconfigured: true
+  playlist_exclude_users:
+webhooks:                                       # Can be individually specified per library as well
+  error:
+  version:
+  run_start:
+  run_end:
+  changes:
+  delete:
+plex:                                           # Can be individually specified per library as well; REQUIRED for the script to run
+  url: ${PMM_PLEX_URL}
+  token: ${PMM_PLEX_TOKEN}
+  timeout: 60
+  clean_bundles: false
+  empty_trash: false
+  optimize: false
+tmdb:                                           # REQUIRED for the script to run
+  apikey: ${PMM_TMDB_API_KEY}
+  language: en
+  cache_expiration: 60
+  region:
+tautulli:                                       # Can be individually specified per library as well
+  url: ${PMM_TAUTULLI_URL}
+  apikey: ${PMM_TAUTULLI_API_KEY}
+omdb:
+  apikey: ${PMM_OMDB_API_KEY}
+  cache_expiration: 60
+mdblist:
+  apikey: ${PMM_MDBLIST_API_KEY}
+  cache_expiration: 60
+trakt:
+  client_id: ${PMM_TRAKT_CLIENT_ID}
+  client_secret: ${PMM_TRAKT_CLIENT_SECRET}
+  pin:
+  authorization:
+    access_token: ${PMM_TRAKT_ACCESS_TOKEN}
+    token_type: Bearer
+    expires_in: 7889238
+    refresh_token: ${PMM_TRAKT_REFRESH_TOKEN}
+    scope: public
+    created_at: 1676304558
