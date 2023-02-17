@@ -2,6 +2,8 @@
 
 ## utilizes docker-compose to setup several services for an automated plex environment.
 
+> Note: to get automated mp4 conversion and optimization scripts to work, you will need to install and setup [Sickbeard mp4 automator](https://github.com/mdhiggins/sickbeard_mp4_automator#dependencies).
+
 ### Media Server
 
 - Plex Media Server
