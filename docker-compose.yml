@@ -108,27 +108,6 @@ services:
       - TRANSMISSION_RATIO_LIMIT=0
       # - ENABLE_UFW=true
 
-  sonarr:
-    image: linuxserver/sonarr:latest
-    container_name: "sonarr"
-    volumes:
-      - ${USERDIR}/docker/sonarr:/config
-      - /disks/seagate1:/seagate1
-      - ${USERDIR}/Downloads/completed:/data/completed
-      - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      - /disks/seagate3:/seagate3
-      - /disks/wdeasystore:/wdeasystore
-      - /disks/wdeasystore2:/wdeasystore2
-      - "/etc/localtime:/etc/localtime:ro"
-      - ${USERDIR}/docker/certs:/certs
-    ports:
-        - "8989:8989"
-    restart: always
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-
   # lidarr:
   #   image: linuxserver/lidarr:latest
   #   container_name: "lidarr"
@@ -164,10 +143,38 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
 
+  sonarr:
+    # build: /etc/environment
+    #image: linuxserver/sonarr:latest
+    image: mdhiggins/sonarr-sma
+    container_name: "sonarr"
+    volumes:
+      - /opt/appdata/sma:/usr/local/sma/config
+      - ${USERDIR}/docker/sonarr:/config
+      - /disks/seagate1:/seagate1
+      # - /disks/seagate2:/seagate2
+      - ${USERDIR}/Downloads/completed:/data/completed
+      - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
+      - /disks/seagate3:/seagate3
+      - /disks/wdeasystore:/wdeasystore
+      - /disks/wdeasystore2:/wdeasystore2
+      - "/etc/localtime:/etc/localtime:ro"
+      - ${USERDIR}/docker/certs:/certs
+    ports:
+        - "8989:8989"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
   radarr:
-    image: linuxserver/radarr:latest
+    # build: /etc/environment
+    #image: linuxserver/radarr:latest
+    image: mdhiggins/radarr-sma
     container_name: "radarr"
     volumes:
+      - /opt/appdata/sma:/usr/local/sma/config
       - ${USERDIR}/docker/radarr:/config
       - ${USERDIR}/media/movies:/movies
       - "/etc/localtime:/etc/localtime:ro"
@@ -175,16 +182,10 @@ services:
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
       - /disks/seagate1:/seagate1
+      # - /disks/seagate2:/seagate2
       - /disks/seagate3:/seagate3
       - /disks/wdeasystore:/wdeasystore
       - /disks/wdeasystore2:/wdeasystore2
-    ports:
-      - "7878:7878"
-    restart: always
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
 
   influxdb:
     image: influxdb:2.1.1
