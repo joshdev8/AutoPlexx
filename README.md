@@ -31,3 +31,29 @@
 - Netdata - Live host monitoring (CPU, memory etc.)
 - Telegraf + Prometheus + InfluxDB - Host data aggregators that feed data into Grafana
 - Grafana - Visualizer and dashboard for metrics passed in from Telegraf, Prometheus, and InfluxDB
+
+### Getting Started
+Create a .env file at the root of the repo, and add the following values
+
+- TZ=America/New_York [more options](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List)
+
+- PUID=1000 [HERE](https://docs.linuxserver.io/general/understanding-puid-and-pgid)
+- PGID=1000
+
+- HOSTNAME Sets the hostname inside the docker container. For example -h PlexServer will set the servername to PlexServer. Not needed in Host Networking.
+TZ Set the timezone inside the container. For example: Europe/London. The complete list can be found here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+- PLEX_CLAIM The claim token for the server to obtain a real server token. If not provided, server will not be automatically logged in. If server is already logged in, this parameter is ignored. You can obtain a claim token to login your server to your plex account by visiting https://www.plex.tv/claim
+
+- ADVERTISE_IP This variable defines the additional IPs on which the server may be found. For example: http://10.1.1.23:32400. This adds to the list where the server advertises that it can be found. This is only needed in Bridge Networking.
+
+- USERDIR=path to your home directory, or wherever you want
+
+Info on how to find the following open vpn values [HERE](https://haugene.github.io/docker-transmission-openvpn/config-options/)
+- OPENVPN_PROVIDER
+- OPENVPN_USERNAME
+- OPENVPN_PASSWORD
+- OPENVPN_CONFIG
+
+- TRANSMISSION_USERNAME=username you want to set to log into transmission container frontend
+- TRANSMISSION_RPC_PASSWORD=password to log into the frontend
