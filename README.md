@@ -1,6 +1,8 @@
 # PLEX MEDIA SERVER STACK
 
-## utilizes docker-compose to setup several services for an automated plex environment.
+## utilizes [Docker](https://www.docker.com/) and [docker-compose](https://docs.linuxserver.io/general/docker-compose) to setup several services for an automated plex environment.
+
+*Once all env variables are set, run `docker-compose -f ~/docker/docker-compose.yml up -d` swapping out ~/docker/docker-compose.yml with wherever your docker-compose.yml file is located*
 
 ### Media Server
 
