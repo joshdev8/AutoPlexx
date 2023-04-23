@@ -206,6 +206,7 @@ services:
       - /disks/seagate3:/seagate3
       - /disks/wdeasystore:/wdeasystore
       - /disks/wdeasystore2:/wdeasystore2
+    restart: unless-stopped
     env_file:
       - .env
     depends_on:
@@ -217,6 +218,7 @@ services:
       - grafana-storage:/var/lib/grafana:rw
     depends_on:
       - influxdb
+    restart: unless-stopped
     ports:
       - ${GRAFANA_PORT}:3000
   
@@ -290,6 +292,7 @@ services:
     image: prom/prometheus:v2.21.0
     ports:
       - 9090:9090
+    restart: unless-stopped
     volumes:
       - ${USERDIR}/docker/prometheus:/prometheus
     command: --web.enable-lifecycle  --config.file=/prometheus/prometheus.yml
