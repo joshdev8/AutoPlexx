@@ -310,6 +310,20 @@ services:
       - 9696:9696
     restart: unless-stopped
 
+  requestrr:
+    image: darkalfx/requestrr
+    hostname: requestrr
+    container_name: requestrr
+    ports:
+      - 4545:4545
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/docker/requestrr/config:/root/config
+    restart: unless-stopped
+
 volumes:
   netdataconfig:
   netdatalib:
