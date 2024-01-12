@@ -18,6 +18,7 @@
 - Transmission-VPN - torrent downloader with VPN built in
 - Jackett - Connects Radarr/Sonarr/Lidarr to content sites
 - Prowlarr - Maps content sites to jackett to be connected to Radarr/Sonarr/Lidarr
+- Requestrr - Add ability for users to request content via Discord bot
 
 ### Docker Environment Management
 
