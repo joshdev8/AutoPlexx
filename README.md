@@ -1,7 +1,7 @@
-# AutoPlexStack
+# AutoPlexx
 <br>
 <div align="center">
-    <img src="https://github.com/joshdev8/AutoPlexStack/assets/19192998/8c7db195-684f-481e-8367-f84904598743" width="40%" height="auto"/>
+    <img src="https://github.com/joshdev8/AutoPlexx/assets/19192998/b367872b-1d48-40cf-b2f5-1aac30a10512" />
 </div>
 <br>
 <br>
