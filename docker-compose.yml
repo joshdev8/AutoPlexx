@@ -31,12 +31,8 @@ services:
       - ${USERDIR}/docker/plexms:/config
       - ${USERDIR}/Downloads/plex_tmp:/transcode
       - /media/media:/media
-      - /disks/seagate1:/seagate1
-      - /disks/seagate3:/seagate3
-      - /disks/transcend:/transcend
-      - /disks/wdeasystore:/wdeasystore
-      - /disks/wdeasystore2:/wdeasystore2
       - ${USERDIR}/docker/certs:/certs
+      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
     network_mode: host
     environment:
       - TZ=${TZ}
@@ -108,18 +104,15 @@ services:
       - TRANSMISSION_RATIO_LIMIT=0
       # - ENABLE_UFW=true
 
+  ## uncomment if you want to use lidarr (for downloading music)
   # lidarr:
   #   image: linuxserver/lidarr:latest
   #   container_name: "lidarr"
   #   volumes:
   #     - ${USERDIR}/docker/lidarr:/config
-  #     - /disks/seagate1:/seagate1
-  #     - /disks/seagate2:/seagate2
-  #     - ${USERDIR}/Downloads/completed:/data/completed
-  #     - /disks/seagate3:/seagate3
-  #     - /disks/wdeasystore:/wdeasystore
   #     - "/etc/localtime:/etc/localtime:ro"
   #     - ${USERDIR}/docker/certs:/certs
+  ##    ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
   #   restart: always
   #   ports:
   #     - "8686:8686"
@@ -151,15 +144,11 @@ services:
     volumes:
       - /opt/appdata/sma:/usr/local/sma/config
       - ${USERDIR}/docker/sonarr:/config
-      - /disks/seagate1:/seagate1
-      # - /disks/seagate2:/seagate2
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      - /disks/seagate3:/seagate3
-      - /disks/wdeasystore:/wdeasystore
-      - /disks/wdeasystore2:/wdeasystore2
       - "/etc/localtime:/etc/localtime:ro"
       - ${USERDIR}/docker/certs:/certs
+      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
     ports:
         - "8989:8989"
     restart: always
@@ -181,11 +170,7 @@ services:
       - ${USERDIR}/docker/certs:/certs
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      - /disks/seagate1:/seagate1
-      # - /disks/seagate2:/seagate2
-      - /disks/seagate3:/seagate3
-      - /disks/wdeasystore:/wdeasystore
-      - /disks/wdeasystore2:/wdeasystore2
+      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
 
   influxdb:
     image: influxdb:2.1.1
@@ -202,10 +187,7 @@ services:
     image: telegraf:1.19
     volumes:
       - ${TELEGRAF_CFG_PATH}:/etc/telegraf/telegraf.conf:rw
-      - /disks/seagate1:/seagate1
-      - /disks/seagate3:/seagate3
-      - /disks/wdeasystore:/wdeasystore
-      - /disks/wdeasystore2:/wdeasystore2
+      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
     restart: unless-stopped
     env_file:
       - .env
@@ -231,10 +213,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${USERDIR}/docker/bazarr/config:/config
-      - /disks/wdeasystore:/wdeasystore
-      - /disks/wdeasystore2:/wdeasystore2
-      - /disks/seagate1:/seagate1
-      - /disks/seagate3:/seagate3
+      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
     ports:
       - 6767:6767
     restart: unless-stopped
