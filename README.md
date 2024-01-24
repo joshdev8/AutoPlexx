@@ -1,8 +1,10 @@
-# Automated Plex Media Server Stack
-
+# AutoPlexStack
+<br>
 <div align="center">
-    <img src="https://github.com/joshdev8/plex-media-server-stack/assets/19192998/66386cb7-e745-4d5f-8859-ff70a961a6ba" width="30%" height="auto"/>
+    <img src="https://github.com/joshdev8/AutoPlexStack/assets/19192998/8c7db195-684f-481e-8367-f84904598743" width="40%" height="auto"/>
 </div>
+<br>
+<br>
 
 This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https://docs.linuxserver.io/general/docker-compose) to create an automated environment for Plex Media Server with several supportive services.
 
