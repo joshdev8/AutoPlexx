@@ -24,6 +24,8 @@ This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https
 
 *If you run into any issues with a specific container, copy the container name and google it for container-specific configuration FAQ's. If there is an issue with my configuration or instructions please let me know and I will update them.*
 
+<a href="https://www.buymeacoffee.com/joshdev8" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
 ## Components
 
 ### Media Server
