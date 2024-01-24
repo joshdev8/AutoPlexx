@@ -6,42 +6,23 @@
 <br>
 <br>
 
-This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https://docs.linuxserver.io/general/docker-compose) to create an automated environment for Plex Media Server with several supportive services.
+This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https://docs.linuxserver.io/general/docker-compose) to create an automated environment for Plex Media Server with several supportive services. These instructions assume you already have both of those setup.
 
 ## Getting Started
 
-1. **Create a .env file** at the root of the repository.
-2. **Add the following values** to the .env file:
+1. Copy the `.env.example` to `.env` and update all of the values according to your setup. Notes regarding each variable are commented next the the variable name.
+   
+2. Replace the volumes in the `docker-compose.yml` file with the correct paths to your hard drive mount points.
 
-    ```
-    TZ=America/New_York   # See more timezone options at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-    PUID=1000             # Find more about PUID/PGID at https://docs.linuxserver.io/general/understanding-puid-and-pgid
-    PGID=1000
-    HOSTNAME=             # Optional: Sets the hostname inside the Docker container.
-    PLEX_CLAIM=           # Obtain from https://www.plex.tv/claim. Necessary for server token.
-    ADVERTISE_IP=         # Example: http://10.1.1.23:32400. Needed in Bridge Networking.
-    USERDIR=              # Path to your home directory or desired location.
-    ```
-
-    **OpenVPN Settings for Transmission-VPN:**
-    ```
-    OPENVPN_PROVIDER=
-    OPENVPN_USERNAME=
-    OPENVPN_PASSWORD=
-    OPENVPN_CONFIG=
-    TRANSMISSION_USERNAME=
-    TRANSMISSION_RPC_PASSWORD=
-    ```
-    
-3. Replace the volumes in the `docker-compose.yml` file with the correct paths to your hard drive mount points.
-
-4. **Run the Docker Compose command**:
+3. **Run the Docker Compose command**:
 
     ```
     docker-compose -f ~/docker/docker-compose.yml up -d
     ```
 
     Replace `~/docker/docker-compose.yml` with the path to your `docker-compose.yml` file.
+
+*If you run into any issues with a specific container, copy the container name and google it for container-specific configuration FAQ's. If there is an issue with my configuration or instructions please let me know and I will update them.*
 
 ## Components
 
