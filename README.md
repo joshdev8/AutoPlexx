@@ -1,60 +1,73 @@
-# PLEX MEDIA SERVER STACK
+# Automated Plex Media Server Stack
 
-## utilizes [Docker](https://www.docker.com/) and [docker-compose](https://docs.linuxserver.io/general/docker-compose) to setup several services for an automated plex environment.
+<div align="center">
+    <img src="https://github.com/joshdev8/plex-media-server-stack/assets/19192998/66386cb7-e745-4d5f-8859-ff70a961a6ba" width="30%" height="auto"/>
+</div>
 
-*Once all env variables are set, run `docker-compose -f ~/docker/docker-compose.yml up -d` swapping out ~/docker/docker-compose.yml with wherever your docker-compose.yml file is located*
+This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https://docs.linuxserver.io/general/docker-compose) to create an automated environment for Plex Media Server with several supportive services.
+
+## Getting Started
+
+1. **Create a .env file** at the root of the repository.
+2. **Add the following values** to the .env file:
+
+    ```
+    TZ=America/New_York   # See more timezone options at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+    PUID=1000             # Find more about PUID/PGID at https://docs.linuxserver.io/general/understanding-puid-and-pgid
+    PGID=1000
+    HOSTNAME=             # Optional: Sets the hostname inside the Docker container.
+    PLEX_CLAIM=           # Obtain from https://www.plex.tv/claim. Necessary for server token.
+    ADVERTISE_IP=         # Example: http://10.1.1.23:32400. Needed in Bridge Networking.
+    USERDIR=              # Path to your home directory or desired location.
+    ```
+
+    **OpenVPN Settings for Transmission-VPN:**
+    ```
+    OPENVPN_PROVIDER=
+    OPENVPN_USERNAME=
+    OPENVPN_PASSWORD=
+    OPENVPN_CONFIG=
+    TRANSMISSION_USERNAME=
+    TRANSMISSION_RPC_PASSWORD=
+    ```
+    
+3. Replace the volumes in the `docker-compose.yml` file with the correct paths to your hard drive mount points.
+
+4. **Run the Docker Compose command**:
+
+    ```
+    docker-compose -f ~/docker/docker-compose.yml up -d
+    ```
+
+    Replace `~/docker/docker-compose.yml` with the path to your `docker-compose.yml` file.
+
+## Components
 
 ### Media Server
 
-- Plex Media Server
-- Plex Meta Manager - Automated metadata curation of plex content
+- **Plex Media Server:** Central media server.
+- **Plex Meta Manager:** Automates metadata curation of Plex content.
 
 ### Content Downloaders
 
-- Radarr - movies
-- Sonarr - tv shows
-- Lidarr - music
-- Bazarr - subtitles
-- Transmission-VPN - torrent downloader with VPN built in
-- Jackett - Connects Radarr/Sonarr/Lidarr to content sites
-- Prowlarr - Maps content sites to jackett to be connected to Radarr/Sonarr/Lidarr
-- Requestrr - Add ability for users to request content via Discord bot
+- **Radarr:** For movies.
+- **Sonarr:** For TV shows.
+- **Lidarr:** For music.
+- **Bazarr:** For subtitles.
+- **Transmission-VPN:** Torrent downloader with built-in VPN.
+- **Jackett:** Connects content downloaders to content sites.
+- **Prowlarr:** Maps content sites to Jackett.
+- **Requestrr:** Enables content requests via Discord bot.
 
 ### Docker Environment Management
 
-- Portainer - container management
-- Watchtower - automated container updates
-- Overseer - content request and centralized management interface
+- **Portainer:** Container management.
+- **Watchtower:** Automated container updates.
+- **Overseer:** Centralized content request and management interface.
 
 ### Monitoring
 
-- Tautulli - Monitoring and statistics of Plex Media Server usage
-- Netdata - Live host monitoring (CPU, memory etc.)
-- Telegraf + Prometheus + InfluxDB - Host data aggregators that feed data into Grafana
-- Grafana - Visualizer and dashboard for metrics passed in from Telegraf, Prometheus, and InfluxDB
-
-### Getting Started
-Create a .env file at the root of the repo, and add the following values
-
-- TZ=America/New_York [more options](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List)
-
-- PUID=1000 [HERE](https://docs.linuxserver.io/general/understanding-puid-and-pgid)
-- PGID=1000
-
-- HOSTNAME Sets the hostname inside the docker container. For example -h PlexServer will set the servername to PlexServer. Not needed in Host Networking.
-TZ Set the timezone inside the container. For example: Europe/London. The complete list can be found here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-
-- PLEX_CLAIM The claim token for the server to obtain a real server token. If not provided, server will not be automatically logged in. If server is already logged in, this parameter is ignored. You can obtain a claim token to login your server to your plex account by visiting https://www.plex.tv/claim
-
-- ADVERTISE_IP This variable defines the additional IPs on which the server may be found. For example: http://10.1.1.23:32400. This adds to the list where the server advertises that it can be found. This is only needed in Bridge Networking.
-
-- USERDIR=path to your home directory, or wherever you want
-
-Info on how to find the following open vpn values [HERE](https://haugene.github.io/docker-transmission-openvpn/config-options/)
-- OPENVPN_PROVIDER
-- OPENVPN_USERNAME
-- OPENVPN_PASSWORD
-- OPENVPN_CONFIG
-
-- TRANSMISSION_USERNAME=username you want to set to log into transmission container frontend
-- TRANSMISSION_RPC_PASSWORD=password to log into the frontend
+- **Tautulli:** Monitors Plex Media Server usage.
+- **Netdata:** Live host monitoring (CPU, memory, etc.).
+- **Telegraf + Prometheus + InfluxDB:** Data aggregators feeding into Grafana.
+- **Grafana:** Visualizes metrics from Telegraf, Prometheus, and InfluxDB.
