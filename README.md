@@ -1,4 +1,4 @@
-# AutoPlexx
+# AutoPlexx - Fully Automated Plex Media Server Setup
 <br>
 <div align="center">
     <img src="https://github.com/joshdev8/AutoPlexx/assets/19192998/b367872b-1d48-40cf-b2f5-1aac30a10512" />
