@@ -171,6 +171,13 @@ services:
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
       # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
+    ports:
+      - "7878:7878"
+    restart: always
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
 
   influxdb:
     image: influxdb:2.1.1
