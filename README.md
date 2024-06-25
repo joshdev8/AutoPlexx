@@ -41,7 +41,7 @@ This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https
 - **Bazarr:** For subtitles.
 - **Transmission-VPN:** Torrent downloader with built-in VPN.
 - **Jackett:** Connects content downloaders to content sites.
-- **Prowlarr:** Maps content sites to Jackett.
+- **Prowlarr:** Maps content sites to Radarr + Sonarr (alternative to Jackett, easier to setup, can use both at the same time).
 - **Requestrr:** Enables content requests via Discord bot.
 
 ### Docker Environment Management
