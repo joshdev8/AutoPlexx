@@ -259,7 +259,7 @@ services:
     restart: unless-stopped
 
   plex-meta-manager:
-    image: lscr.io/linuxserver/plex-meta-manager:latest
+    image: kometateam/kometa:latest
     container_name: plex-meta-manager
     environment:
       - PMM_CONFIG=/config/config.yml #optional
