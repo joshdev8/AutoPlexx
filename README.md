@@ -32,7 +32,7 @@ This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https
 
 - **Plex Media Server:** Central media server.
 - **Kometa:** Automates metadata curation of Plex content. Gives you granular control over metadata, collections, overlays, and much more.
-
+- **Cleanarr:** Finds all duplicate content on your server and intelligently selects which copy/copies to remove.
 
 ### Content Downloaders
 
