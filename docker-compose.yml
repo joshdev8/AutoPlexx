@@ -310,6 +310,22 @@ services:
       - ${USERDIR}/docker/requestrr/config:/root/config
     restart: unless-stopped
 
+  cleanarr:
+    image: selexin/cleanarr:latest
+    container_name: cleanarr
+    hostname: cleanarr
+    ports:
+      - "5000:80"
+    environment:
+      - PLEX_TOKEN=${PLEX_TOKEN} # Obtain from https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/
+      - PLEX_BASE_URL=${PLEX_ADVERTISE_IP} # http://192.168.1.100:32400 (your server IP with Plex port)
+      - LIBRARY_NAMES=Movies;TV Shows # Change these to whatever your media libraries are called
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${DOCKER_DIR}/cleanarr/config:/config
+    restart: unless-stopped
+
 volumes:
   netdataconfig:
   netdatalib:
