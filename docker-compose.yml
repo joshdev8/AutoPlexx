@@ -1,66 +1,75 @@
----
-# docker-compose -f ~/docker/docker-compose.yml up -d
-version: "3.3"
+version: "3.8"
+
 networks:
-  internal:
+  media_network:
     driver: bridge
+  monitoring_network:
+    driver: bridge
+  download_network:
+    driver: bridge
+
+x-common-vars: &common-vars
+  PUID: ${PUID}
+  PGID: ${PGID}
+  TZ: ${TZ}
+
+x-common-volumes: &common-volumes >-
+  ${USERDIR}/docker/certs:/certs:ro,
+  /etc/localtime:/etc/localtime:ro
 
 services:
   portainer:
-    image: portainer/portainer-ce
+    image: portainer/portainer-ce:latest
     container_name: portainer
-    restart: always
-    network_mode: 'bridge'
-    # command: -H unix:///var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - monitoring_network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${USERDIR}/docker/portainer/data:/data
-      - '/etc/localtime:/etc/localtime:ro'
+      - portainer-data:/data
+      - *common-volumes
     ports:
       - "9000:9000"
     environment:
-      - TZ=${TZ}
-      - PUID=${PUID}
-      - PGID=${PGID}
+      <<: *common-vars
 
   plexms:
     container_name: plexms
-    restart: always
+    restart: unless-stopped
     image: plexinc/pms-docker:plexpass
     volumes:
       - ${USERDIR}/docker/plexms:/config
       - ${USERDIR}/Downloads/plex_tmp:/transcode
       - /media/media:/media
-      - ${USERDIR}/docker/certs:/certs
-      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
+      - *common-volumes
     network_mode: host
     environment:
-      - TZ=${TZ}
-      - HOSTNAME=${PLEX_HOSTNAME}
-      - PLEX_CLAIM=${PLEX_CLAIM}
-      - PLEX_UID=${PUID}
-      - PLEX_GID=${PGID}
-      - ADVERTISE_IP=${PLEX_ADVERTISE_IP}
+      <<: *common-vars
+      HOSTNAME: ${PLEX_HOSTNAME}
+      PLEX_CLAIM: ${PLEX_CLAIM}
+      ADVERTISE_IP: ${PLEX_ADVERTISE_IP}
 
   tautulli:
     image: ghcr.io/linuxserver/tautulli:latest
     container_name: tautulli
-    restart: always
+    restart: unless-stopped
+    networks:
+      - media_network
     volumes:
       - ${USERDIR}/docker/plexpy:/config
       - /var/log/plexpy:/logs:ro
-      - ${USERDIR}/docker/certs:/certs
+      - *common-volumes
     ports:
       - "8181:8181"
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      <<: *common-vars
+    depends_on:
+      - plexms
 
   watchtower:
     container_name: watchtower
-    restart: always
-    image: v2tec/watchtower
+    restart: unless-stopped
+    image: containrrr/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 0 4 * * *" --cleanup
@@ -68,133 +77,109 @@ services:
   transmission-vpn:
     container_name: transmission-vpn
     image: haugene/transmission-openvpn
+    networks:
+      - download_network
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun
-    restart: always
+    restart: unless-stopped
     ports:
-    - "9091:9091"
+      - "9091:9091"
     dns:
       - 8.8.8.8
       - 8.8.4.4
     volumes:
-      - /etc/localtime:/etc/localtime:ro
       - ${USERDIR}/docker/transmission-vpn:/data
-      - ${USERDIR}/docker/certs:/certs
       - ${USERDIR}/Downloads:/data/watch
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/incomplete:/data/incomplete
+      - *common-volumes
     environment:
-      - OPENVPN_PROVIDER=${OPENVPN_PROVIDER}
-      - OPENVPN_USERNAME=${OPENVPN_USERNAME}
-      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CONFIG=${OPENVPN_CONFIG} #optional line
-      - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60 --mute-replay-warnings
-      - LOCAL_NETWORK=192.168.86.0/24
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - TRANSMISSION_RPC_AUTHENTICATION_REQUIRED=true
-      - TRANSMISSION_RPC_HOST_WHITELIST="127.0.0.*,192.168.*.*"
-      - TRANSMISSION_PASSWORD=${TRANSMISSION_PASSWORD}
-      - TRANSMISSION_USERNAME=${TRANSMISSION_USERNAME}
-      - TRANSMISSION_UMASK=2
-      - TRANSMISSION_RATIO_LIMIT_ENABLED=true
-      - TRANSMISSION_RATIO_LIMIT=0
-      # - ENABLE_UFW=true
-
-  ## uncomment if you want to use lidarr (for downloading music)
-  # lidarr:
-  #   image: linuxserver/lidarr:latest
-  #   container_name: "lidarr"
-  #   volumes:
-  #     - ${USERDIR}/docker/lidarr:/config
-  #     - "/etc/localtime:/etc/localtime:ro"
-  #     - ${USERDIR}/docker/certs:/certs
-  ##    ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
-  #   restart: always
-  #   ports:
-  #     - "8686:8686"
-  #   environment:
-  #     - PUID=${PUID}
-  #     - PGID=${PGID}
-  #     - TZ=${TZ}
+      <<: *common-vars
+      OPENVPN_PROVIDER: ${OPENVPN_PROVIDER}
+      OPENVPN_USERNAME: ${OPENVPN_USERNAME}
+      OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
+      OPENVPN_CONFIG: ${OPENVPN_CONFIG}
+      OPENVPN_OPTS: "--inactive 3600 --ping 10 --ping-exit 60 --mute-replay-warnings"
+      LOCAL_NETWORK: "192.168.86.0/24"
+      TRANSMISSION_RPC_AUTHENTICATION_REQUIRED: "true"
+      TRANSMISSION_RPC_HOST_WHITELIST: "127.0.0.*,192.168.*.*"
+      TRANSMISSION_PASSWORD: ${TRANSMISSION_PASSWORD}
+      TRANSMISSION_USERNAME: ${TRANSMISSION_USERNAME}
+      TRANSMISSION_UMASK: "2"
+      TRANSMISSION_RATIO_LIMIT_ENABLED: "true"
+      TRANSMISSION_RATIO_LIMIT: "0"
 
   jackett:
-    image: "linuxserver/jackett"
-    container_name: "jackett"
+    image: linuxserver/jackett:latest
+    container_name: jackett
+    networks:
+      - download_network
     volumes:
       - ${USERDIR}/docker/jackett:/config
-      - "/etc/localtime:/etc/localtime:ro"
-      - ${USERDIR}/docker/certs:/certs
+      - *common-volumes
     ports:
       - "9117:9117"
-    restart: always
+    restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      <<: *common-vars
 
   sonarr:
-    # build: /etc/environment
-    #image: linuxserver/sonarr:latest
-    image: mdhiggins/sonarr-sma
-    container_name: "sonarr"
+    image: mdhiggins/sonarr-sma:latest
+    container_name: sonarr
+    networks:
+      - media_network
+      - download_network
     volumes:
       - /opt/appdata/sma:/usr/local/sma/config
       - ${USERDIR}/docker/sonarr:/config
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      - "/etc/localtime:/etc/localtime:ro"
-      - ${USERDIR}/docker/certs:/certs
-      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
+      - *common-volumes
     ports:
-        - "8989:8989"
-    restart: always
+      - "8989:8989"
+    restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      <<: *common-vars
 
   radarr:
-    # build: /etc/environment
-    #image: linuxserver/radarr:latest
-    image: mdhiggins/radarr-sma
-    container_name: "radarr"
+    image: mdhiggins/radarr-sma:latest
+    container_name: radarr
+    networks:
+      - media_network
+      - download_network
     volumes:
       - /opt/appdata/sma:/usr/local/sma/config
       - ${USERDIR}/docker/radarr:/config
       - ${USERDIR}/media/movies:/movies
-      - "/etc/localtime:/etc/localtime:ro"
-      - ${USERDIR}/docker/certs:/certs
       - ${USERDIR}/Downloads/completed:/data/completed
       - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
+      - *common-volumes
     ports:
       - "7878:7878"
-    restart: always
+    restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      <<: *common-vars
 
   influxdb:
-    image: influxdb:2.1.1
+    image: influxdb:latest
+    networks:
+      - monitoring_network
     volumes:
-      - influxdb-storage:/var/lib/influxdb2:rw
+      - influxdb-data:/var/lib/influxdb2
     env_file:
       - .env
-    entrypoint: ["./entrypoint.sh"]
-    restart: on-failure:10
+    restart: unless-stopped
     ports:
-      - ${DOCKER_INFLUXDB_INIT_PORT}:8086
+      - "${DOCKER_INFLUXDB_INIT_PORT}:8086"
 
   telegraf:
-    image: telegraf:1.19
+    image: telegraf:latest
+    networks:
+      - monitoring_network
     volumes:
-      - ${TELEGRAF_CFG_PATH}:/etc/telegraf/telegraf.conf:rw
-      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
+      - ${TELEGRAF_CFG_PATH}:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
     env_file:
       - .env
@@ -203,33 +188,42 @@ services:
 
   grafana:
     image: grafana/grafana-oss:latest
+    networks:
+      - monitoring_network
     volumes:
-      - grafana-storage:/var/lib/grafana:rw
+      - grafana-data:/var/lib/grafana
     depends_on:
       - influxdb
     restart: unless-stopped
     ports:
-      - ${GRAFANA_PORT}:3000
-  
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      <<: *common-vars
+
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+    networks:
+      - media_network
     volumes:
       - ${USERDIR}/docker/bazarr/config:/config
-      # ADD ADDITIONAL HARD DRIVE MOUNT POINTS HERE
+      - *common-volumes
     ports:
-      - 6767:6767
+      - "6767:6767"
     restart: unless-stopped
+    environment:
+      <<: *common-vars
+    depends_on:
+      - radarr
+      - sonarr
 
   netdata:
-    image: netdata/netdata
+    image: netdata/netdata:latest
     container_name: netdata2
+    networks:
+      - monitoring_network
     ports:
-      - 19999:19999
+      - "19999:19999"
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE
@@ -244,92 +238,107 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /etc/os-release:/host/etc/os-release:ro
-  
+
   overseerr:
     image: lscr.io/linuxserver/overseerr:latest
     container_name: overseerr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+    networks:
+      - media_network
     volumes:
       - ${USERDIR}/docker/overseer/config:/config
     ports:
-      - 5055:5055
+      - "5055:5055"
     restart: unless-stopped
+    environment:
+      <<: *common-vars
+    depends_on:
+      - plexms
 
   plex-meta-manager:
     image: kometateam/kometa:latest
     container_name: plex-meta-manager
+    networks:
+      - media_network
     environment:
-      - PMM_CONFIG=/config/config.yml #optional
-      - PMM_TIME=03:00 #optional
-      - PMM_RUN=False #optional
-      - PMM_TEST=False #optional
-      - PMM_NO_MISSING=False #optional
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      <<: *common-vars
+      PMM_CONFIG: /config/config.yml
+      PMM_TIME: "03:00"
+      PMM_RUN: "False"
+      PMM_TEST: "False"
+      PMM_NO_MISSING: "False"
     volumes:
       - ${USERDIR}/docker/plex-meta-manager/config:/config
     restart: unless-stopped
+    depends_on:
+      - plexms
 
   prometheus:
-    image: prom/prometheus:v2.21.0
+    image: prom/prometheus:latest
+    networks:
+      - monitoring_network
     ports:
-      - 9090:9090
+      - "9090:9090"
     restart: unless-stopped
     volumes:
-      - ${USERDIR}/docker/prometheus:/prometheus
-    command: --web.enable-lifecycle  --config.file=/prometheus/prometheus.yml
-  
+      - prometheus-data:/prometheus
+      - ${USERDIR}/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+    networks:
+      - download_network
     volumes:
       - ${USERDIR}/docker/prowlarr:/config
     ports:
-      - 9696:9696
+      - "9696:9696"
     restart: unless-stopped
+    environment:
+      <<: *common-vars
 
   requestrr:
-    image: darkalfx/requestrr
-    hostname: requestrr
+    image: darkalfx/requestrr:latest
     container_name: requestrr
+    networks:
+      - media_network
     ports:
-      - 4545:4545
+      - "4545:4545"
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      <<: *common-vars
     volumes:
       - ${USERDIR}/docker/requestrr/config:/root/config
     restart: unless-stopped
+    depends_on:
+      - radarr
+      - sonarr
 
   cleanarr:
     image: selexin/cleanarr:latest
     container_name: cleanarr
-    hostname: cleanarr
+    networks:
+      - media_network
     ports:
       - "5000:80"
     environment:
-      - PLEX_TOKEN=${PLEX_TOKEN} # Obtain from https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/
-      - PLEX_BASE_URL=${PLEX_ADVERTISE_IP} # http://192.168.1.100:32400 (your server IP with Plex port)
-      - LIBRARY_NAMES=Movies;TV Shows # Change these to whatever your media libraries are called
-      - PUID=${PUID}
-      - PGID=${PGID}
+      <<: *common-vars
+      PLEX_TOKEN: ${PLEX_TOKEN}
+      PLEX_BASE_URL: ${PLEX_ADVERTISE_IP}
+      LIBRARY_NAMES: "Movies;TV Shows"
     volumes:
       - ${DOCKER_DIR}/cleanarr/config:/config
     restart: unless-stopped
+    depends_on:
+      - plexms
 
 volumes:
   netdataconfig:
   netdatalib:
   netdatacache:
-  grafana-storage:
-  influxdb-storage:
+  grafana-data:
+  influxdb-data:
   prometheus-data:
+  portainer-data:
