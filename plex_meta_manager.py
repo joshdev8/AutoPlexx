@@ -1,3 +1,5 @@
+## THIS IS NOT USED, IT IS HERE FOR REFERENCE
+
 from modules.util import Failed, FilterFailed, NonExisting, NotScheduled, Deleted
 from modules.config import ConfigFile
 from modules.builder import CollectionBuilder
