@@ -29,6 +29,36 @@ collections:
   #         DISCOVER         #
   ############################
 
+  Top Rated Animated Shows:
+    tmdb_discover:
+      limit: 30
+      include_adult: false
+      with_genres: 16
+      with_original_language: en
+      sort_by: vote_average.desc
+      vote_count.gte: 100
+      first_air_date.gte: 2010-01-01
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    summary: A collection of the highest rated animated TV shows
+    sort_title: "*150"
+    schedule: weekly
+
+  Top Rated Family Shows:
+    tmdb_discover:
+      limit: 30
+      include_adult: false
+      with_genres: 10751
+      sort_by: vote_average.desc
+      vote_count.gte: 50
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    summary: A collection of the highest rated family-friendly TV shows
+    sort_title: "*151"
+    schedule: weekly
+
   ############################
   #          CUSTOM          #
   ############################
@@ -39,7 +69,7 @@ collections:
     collection_mode: default
     collection_order: release
     sort_title: "*400"
-    file_poster: /config/assets/Star Trek-2.png
+    file_poster: config/assets/Star Trek-2.png
     schedule: monthly(10)
   Star Wars (Animated):
     tmdb_list: https://www.themoviedb.org/list/7091278
@@ -118,13 +148,6 @@ collections:
     collection_order: release
     sort_title: "*501"
     schedule: weekly(friday)
-  #  Marvel Cinematic Universe (Chronological):    # This includes the Movies also
-  #    trakt_list: https://trakt.tv/users/donxy/lists/marvel-cinematic-universe?sort=rank,asc
-  #    sync_mode: sync
-  #    collection_mode: default
-  #    collection_order: release
-  #    sort_title: "*504c"
-  #    schedule: weekly(friday)
   DC:
     tmdb_list: https://www.themoviedb.org/list/7071946
     sync_mode: sync
@@ -138,21 +161,12 @@ collections:
   ############################
 
   Apple TV+:
-    tmdb_list: https://www.themoviedb.org/list/7071557
-    tvdb_show:
-      - 409820
+    tmdb_network: 2552
     sync_mode: sync
     collection_mode: default
     collection_order: release
     sort_title: "*700"
     schedule: daily
-  #  Apple TV+:
-  #    tmdb_network: 2552
-  #    sync_mode: sync
-  #    collection_mode: default
-  #    collection_order: release
-  #    sort_title: "*700"
-  #    schedule: daily
   Apple TV+ (Score):
     mdblist_list: https://mdblist.com/lists/awesomeaustn/apple-tv-sorted-by-score
     sync_mode: sync
@@ -161,21 +175,13 @@ collections:
     sort_title: "*700b"
     summary: Sorted by a combined score of IMDb, Trakt, TMDb, Letterboxed, Rotten Tomatoes, Audience, Metacritic, and RogerEbert.
     schedule: daily
-  #   The default sort_by when it’s not specified is score.desc
   Netflix:
-    tmdb_list: https://www.themoviedb.org/list/7107927
+    tmdb_network: 213
     sync_mode: sync
     collection_mode: default
     collection_order: release
     sort_title: "*701"
     schedule: daily
-  #  Netflix:
-  #    tmdb_network: 213
-  #    sync_mode: sync
-  #    collection_mode: default
-  #    collection_order: release
-  #    sort_title: "*701"
-  #    schedule: daily
   Netflix (Score):
     mdblist_list: https://mdblist.com/lists/awesomeaustn/netflix-sorted-by-score
     sync_mode: sync
@@ -184,7 +190,6 @@ collections:
     sort_title: "*701b"
     summary: Sorted by a combined score of IMDb, Trakt, TMDb, Letterboxed, Rotten Tomatoes, Audience, Metacritic, and RogerEbert.
     schedule: daily
-  #   The default sort_by when it’s not specified is score.desc
   Prime Video:
     tmdb_network: 1024
     sync_mode: sync
@@ -199,12 +204,13 @@ collections:
     collection_order: release
     sort_title: "*703"
     schedule: daily
-  HBO Max:
+  Max:
     tmdb_network: 3186
     sync_mode: sync
     collection_mode: default
     collection_order: release
     sort_title: "*704"
+    summary: Formerly HBO Max
     schedule: daily
   Disney+:
     tmdb_network: 2739
@@ -221,7 +227,6 @@ collections:
     sort_title: "*705b"
     summary: Sorted by a combined score of IMDb, Trakt, TMDb, Letterboxed, Rotten Tomatoes, Audience, Metacritic, and RogerEbert.
     schedule: daily
-  #   The default sort_by when it’s not specified is score.desc
   Paramount+:
     tmdb_network: 4330
     sync_mode: sync
@@ -229,10 +234,6 @@ collections:
     collection_order: release
     sort_title: "*706"
     schedule: daily
-
-  ############################
-  #         HOLIDAYS         #
-  ############################
 
   ############################
   #          GENRES          #
@@ -280,6 +281,26 @@ collections:
     sort_title: "*203"
     summary: A collection of Drama TV Shows with a rating of 8 and higher
     schedule: weekly(friday)
+  Animation:
+    plex_search:
+      all:
+        genre: Animation
+    sync_mode: sync
+    collection_mode: default
+    collection_order: alpha
+    sort_title: "*204"
+    summary: A collection of Animated TV Shows
+    schedule: weekly(friday)
+  Sci-Fi & Fantasy:
+    plex_search:
+      all:
+        genre: Science Fiction
+    sync_mode: sync
+    collection_mode: default
+    collection_order: alpha
+    sort_title: "*205"
+    summary: A collection of Science Fiction TV Shows
+    schedule: weekly(friday)
 
   ############################
   #          YEARS           #
@@ -315,6 +336,62 @@ collections:
     summary: A collection of TV shows in 2022
     sort_title: "*302"
     schedule: weekly(friday)
+  2023 Shows:
+    plex_search:
+      all:
+        year: 2023
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of TV shows in 2023
+    sort_title: "*303"
+    schedule: weekly(friday)
+  2024 Shows:
+    plex_search:
+      all:
+        year: 2024
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of TV shows premiered in 2024
+    sort_title: "*304"
+    schedule: daily
+  2025 Shows:
+    plex_search:
+      all:
+        year: 2025
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of TV shows premiering in 2025
+    sort_title: "*305"
+    schedule: daily
+    
+  ############################
+  #          STATUS          #
+  ############################
+
+  Currently Airing:
+    plex_all: true
+    filters:
+      status: airing
+    sync_mode: sync
+    collection_mode: default
+    collection_order: alpha
+    sort_title: "*600"
+    schedule: weekly
+    
+  Recently Ended:
+    plex_all: true
+    filters:
+      status: ended
+      year.gte: 2022
+    sync_mode: sync
+    collection_mode: default
+    collection_order: alpha
+    sort_title: "*601"
+    schedule: weekly
+
 ############################
 #          AUDIO           #
 ############################
@@ -338,4 +415,4 @@ collections:
 #    collection_order: custom
 #    sort_title: "*952"
 #    schedule: weekly(friday)
-#   The default sort_by when it’s not specified is score.desc
+#   The default sort_by when it's not specified is score.desc

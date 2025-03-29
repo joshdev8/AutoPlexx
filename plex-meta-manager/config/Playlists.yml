@@ -1,0 +1,118 @@
+templates:
+  Auto Rotating Playlist:
+    default:
+      sync_to_users: all
+      playlist_mode: append
+      visible_home: true
+      visible_shared: true
+      delete_not_scheduled: false
+    summary: A daily shuffled collection of movies that updates every day.
+    schedule: daily
+
+playlists:
+  Daily Action Movie:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 20
+      all:
+        genre: Action
+        critic_rating.gte: 7.0
+        year.gte: 1980
+    filters:
+      random: 20
+
+  Daily Comedy Movie:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 20
+      all:
+        genre: Comedy
+        audience_rating.gte: 7.5
+        year.gte: 1980
+    filters:
+      random: 20
+
+  Daily Animated Movie:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 15
+      all:
+        genre: Animation
+        rating.gte: 7.0
+    filters:
+      random: 15
+
+  Daily Family Movie:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 20
+      all:
+        genre: Family
+        content_rating: G, PG
+        year.gte: 1980
+    filters:
+      random: 15
+
+  Daily TV Show Episodes:
+    template: {name: Auto Rotating Playlist}
+    builder_level: episode
+    plex_search:
+      limit: 30
+      any:
+        genre: Comedy, Animation
+        year.gte: 2010
+    filters:
+      random: 30
+
+  Top Rated Movies:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 50
+      all:
+        rating.gte: 8.5
+        year.gte: 1980
+    filters:
+      random: 25
+
+  Best Movies Past 5 Years:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 50
+      all:
+        year.gte: 2019
+        year.lte: 2024
+        rating.gte: 7.5
+    filters:
+      random: 20
+    summary: A rotating selection of the best movies from the past 5 years (2019-2024)
+
+  Best Movies of 2024:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 30
+      all:
+        year: 2024
+        rating.gte: 7.0
+    filters:
+      random: 15
+    summary: A rotating selection of the best movies released in 2024
+
+  Anticipated Movies of 2025:
+    template: {name: Auto Rotating Playlist}
+    tmdb_discover:
+      primary_release_year: 2025
+      sort_by: popularity.desc
+      limit: 30
+    filters:
+      random: 15
+    summary: A rotating selection of upcoming and anticipated movies for 2025
+
+  Movie of the Day:
+    template: {name: Auto Rotating Playlist}
+    plex_search:
+      limit: 1
+      all:
+        rating.gte: 8.0
+        resolution: 1080p, 4k
+    filters:
+      random: 1 

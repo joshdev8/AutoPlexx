@@ -1,0 +1,78 @@
+templates:
+  Resolution:
+    default:
+      weight: 50
+      horizontal_offset: 0
+      vertical_offset: 0
+    conditionals:
+      4K:
+        conditions:
+          - resolution.regex: "(?i)4k|uhd|2160|4000"
+        overlay:
+          name: 4K
+          file: config/assets/overlays/4K.png
+      1080p:
+        conditions:
+          - resolution.regex: "(?i)1080|1920|hd|fhd"
+        overlay:
+          name: 1080P
+          file: config/assets/overlays/1080P.png
+      720p:
+        conditions:
+          - resolution.regex: "(?i)720|1280|hd"
+        overlay:
+          name: 720P
+          file: config/assets/overlays/720P.png
+
+overlays:
+  Dolby:
+    plex_all: true
+    filters:
+      filepath: Dolby
+    overlay:
+      name: Dolby Vision
+      file: config/assets/overlays/dolbyvision.png
+      horizontal_align: right
+      vertical_align: bottom
+      horizontal_offset: 0
+      vertical_offset: 0
+
+  HDR:
+    plex_all: true
+    filters:
+      filepath: HDR
+    overlay:
+      name: HDR
+      file: config/assets/overlays/hdr.png
+      horizontal_align: right
+      vertical_align: bottom
+      horizontal_offset: 0
+      vertical_offset: 0
+
+  IMDb Top 250:
+    imdb_list: https://www.imdb.com/search/title/?groups=top_250&sort=user_rating,desc
+    overlay:
+      name: IMDb Top 250
+      file: config/assets/overlays/imdb250.png
+      horizontal_align: left
+      vertical_align: bottom
+      horizontal_offset: 0
+      vertical_offset: 0
+
+  4K Movies:
+    template: {name: Resolution, condition: 4K}
+    plex_search:
+      all:
+        resolution.regex: "(?i)4k|uhd|2160|4000"
+
+  1080p Movies:
+    template: {name: Resolution, condition: 1080p}
+    plex_search:
+      all:
+        resolution.regex: "(?i)1080|1920|hd|fhd"
+        
+  720p Movies:
+    template: {name: Resolution, condition: 720p}
+    plex_search:
+      all:
+        resolution.regex: "(?i)720|1280|hd" 

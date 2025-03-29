@@ -1,0 +1,66 @@
+templates:
+  TV Show Status:
+    default:
+      weight: 50
+      horizontal_offset: 0
+      vertical_offset: 0
+    conditionals:
+      Airing:
+        conditions:
+          - status: airing
+        overlay:
+          name: Airing
+          file: config/assets/overlays/airing.png
+      Ended:
+        conditions:
+          - status: ended
+        overlay:
+          name: Ended
+          file: config/assets/overlays/ended.png
+      Canceled:
+        conditions:
+          - status: canceled
+        overlay:
+          name: Canceled
+          file: config/assets/overlays/canceled.png
+
+overlays:
+  IMDb Top 250:
+    imdb_list: https://www.imdb.com/search/title/?title_type=tv_series&groups=top_250
+    overlay:
+      name: IMDb Top 250
+      file: config/assets/overlays/imdb250.png
+      horizontal_align: left
+      vertical_align: bottom
+      horizontal_offset: 0
+      vertical_offset: 0
+
+  Currently Airing Shows:
+    template: {name: TV Show Status, condition: Airing}
+    plex_all: true
+    filters:
+      status: airing
+
+  Ended Shows:
+    template: {name: TV Show Status, condition: Ended}
+    plex_all: true
+    filters:
+      status: ended
+
+  Canceled Shows:
+    template: {name: TV Show Status, condition: Canceled}
+    plex_all: true
+    filters:
+      status: canceled
+
+  Streaming Badges:
+    plex_search:
+      any:
+        network: "Netflix, Disney+, HBO Max, Apple TV+, Amazon, Hulu"
+    overlay:
+      name: Streaming Badge
+      file: config/assets/overlays/streaming.png
+      horizontal_align: right
+      vertical_align: top
+      horizontal_offset: 15
+      vertical_offset: 15 

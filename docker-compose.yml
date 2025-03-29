@@ -256,16 +256,21 @@ services:
 
   plex-meta-manager:
     image: kometateam/kometa:latest
-    container_name: plex-meta-manager
+    container_name: kometa
     networks:
       - media_network
     environment:
       <<: *common-vars
       PMM_CONFIG: /config/config.yml
       PMM_TIME: "03:00"
-      PMM_RUN: "False"
+      PMM_RUN: "True"
       PMM_TEST: "False"
       PMM_NO_MISSING: "False"
+      PMM_PLEX_URL: ${PLEX_ADVERTISE_IP}
+      PMM_PLEX_TOKEN: ${PLEX_TOKEN}
+      PMM_TMDB_API_KEY: ${TMDB_API_KEY}
+      PMM_TAUTULLI_URL: http://tautulli:8181
+      PMM_TAUTULLI_API_KEY: ${TAUTULLI_API_KEY}
     volumes:
       - ${USERDIR}/docker/plex-meta-manager/config:/config
     restart: unless-stopped

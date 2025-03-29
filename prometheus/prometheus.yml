@@ -21,9 +21,42 @@ rule_files:
 scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: "prometheus"
-
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
-
     static_configs:
       - targets: ["localhost:9090"]
+
+  # Docker metrics via cAdvisor
+  - job_name: "docker"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Host metrics via Node Exporter
+  - job_name: "node_exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Telegraf metrics
+  - job_name: "telegraf"
+    static_configs:
+      - targets: ["telegraf:9273"]
+
+  # Tautulli metrics
+  - job_name: "tautulli"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["tautulli:8181"]
+
+  # Netdata metrics
+  - job_name: "netdata"
+    metrics_path: "/api/v1/allmetrics"
+    params:
+      format: [prometheus]
+    honor_labels: true
+    static_configs:
+      - targets: ["netdata:19999"]
+
+  # Plex Exporter metrics
+  - job_name: "plex_exporter"
+    static_configs:
+      - targets: ["plex-exporter:9594"]
