@@ -75,14 +75,11 @@ collections:
   #    TRAKT COLLECTIONS     #
   ############################
 
-  # Made by Magic
-
   Trending Now (Unplayed):
     trakt_chart:
       chart: trending
       limit: 100
     sort_title: "!B Trending Now"
-    url_poster: https://raw.githubusercontent.com/Magic815/Plex-Meta-Manager-Configs/main/collection%20posters/Trakt-Trending-Now.png
     sync_mode: sync
     collection_mode: default
     collection_filtering: user
@@ -92,7 +89,6 @@ collections:
     smart_label:
       sort_by: release.desc
       all:
-        label: <<smart_label>>
         unplayed: true
     schedule: daily
   Most Watched This Week (Unplayed):
@@ -101,7 +97,6 @@ collections:
       time_period: weekly
       limit: 100
     sort_title: "!B Watched This Week"
-    url_poster: https://raw.githubusercontent.com/Magic815/Plex-Meta-Manager-Configs/main/collection%20posters/Trakt-Most-Watched-This-Week.png
     sync_mode: sync
     collection_mode: default
     collection_filtering: user
@@ -111,7 +106,6 @@ collections:
     smart_label:
       sort_by: release.desc
       all:
-        label: <<smart_label>>
         unplayed: true
     schedule: daily
   Most Watched This Year (Unplayed):
@@ -120,7 +114,6 @@ collections:
       time_period: yearly
       limit: 200
     sort_title: "!B Watched This Year"
-    url_poster: https://raw.githubusercontent.com/Magic815/Plex-Meta-Manager-Configs/main/collection%20posters/Trakt-Most-Watched-This-Year.png
     sync_mode: sync
     collection_mode: default
     collection_filtering: user
@@ -130,7 +123,6 @@ collections:
     smart_label:
       sort_by: release.desc
       all:
-        label: <<smart_label>>
         unplayed: true
     schedule: daily
 
@@ -236,6 +228,27 @@ collections:
     collection_mode: default
     collection_order: custom
     sort_title: "*113"
+    schedule: yearly(01/30)
+  Rotten Tomatoes - Best of 2021:
+    trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-best-of-2021
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    sort_title: "*113a"
+    schedule: yearly(01/30)
+  Rotten Tomatoes - Best of 2022:
+    trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-best-of-2022
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    sort_title: "*113b"
+    schedule: yearly(01/30)
+  Rotten Tomatoes - Best of 2023:
+    trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-best-of-2023
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    sort_title: "*113c"
     schedule: yearly(01/30)
   Rotten Tomatoes - Best All Time:
     trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-top-100-movies-of-all-time
@@ -581,16 +594,6 @@ collections:
   #    sort_title: "*504b"
   #    schedule: weekly(friday)
   #    file_poster: /config/assets/Marvel Cinematic Universe.png
-  DC:
-    imdb_list:
-      - https://www.imdb.com/list/ls084123848
-      - https://www.imdb.com/list/ls084122077
-    sync_mode: sync
-    collection_mode: default
-    collection_order: release
-    sort_title: "*505"
-    file_poster: /config/assets/DC-2.png
-    schedule: weekly(friday)
   #  DC:
   #    tmdb_company: 429
   #    sync_mode: sync
@@ -886,6 +889,36 @@ collections:
     summary: A collection of movies in 2022
     sort_title: "*302"
     schedule: weekly(friday)
+  2023 Movies:
+    plex_search:
+      all:
+        year: 2023
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of movies in 2023
+    sort_title: "*303"
+    schedule: weekly(friday)
+  2024 Movies:
+    plex_search:
+      all:
+        year: 2024
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of movies in 2024
+    sort_title: "*304"
+    schedule: daily
+  2025 Movies:
+    plex_search:
+      all:
+        year: 2025
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of movies in 2025
+    sort_title: "*305"
+    schedule: daily
 
   ############################
   #          AUDIO           #
@@ -908,6 +941,16 @@ collections:
     collection_mode: default
     collection_order: alpha
     sort_title: "*751"
+    schedule: daily
+  Dolby Atmos:
+    plex_all: true
+    filters:
+      audio_codec: truehd
+      audio_profile: atmos
+    sync_mode: sync
+    collection_mode: default
+    collection_order: alpha
+    sort_title: "*752"
     schedule: daily
 
   ############################
@@ -1076,7 +1119,7 @@ collections:
   #    collection_order: custom
   #    sort_title: "*950"
   #    schedule: weekly(friday)
-  #    The default sort_by when it’s not specified is score.desc
+  #    The default sort_by when it's not specified is score.desc
   #  Dolby Vision:
   #    mdblist_list: https://mdblist.com/lists/blisskodi/dolby-vision-film
   #    sync_mode: sync
@@ -1084,7 +1127,7 @@ collections:
   #    collection_order: custom
   #    sort_title: "*951"
   #    schedule: weekly(friday)
-  #    The default sort_by when it’s not specified is score.desc
+  #    The default sort_by when it's not specified is score.desc
   #  Dolby Atmos & Dolby Vision:
   #    mdblist_list: https://mdblist.com/lists/blisskodi/dolby-atmos-dolby-vision-film
   #    sync_mode: sync
@@ -1092,7 +1135,7 @@ collections:
   #    collection_order: custom
   #    sort_title: "*952"
   #    schedule: weekly(friday)
-  #    The default sort_by when it’s not specified is score.desc
+  #    The default sort_by when it's not specified is score.desc
 
   ############################
   #     MOVIE OF THE DAY     #
