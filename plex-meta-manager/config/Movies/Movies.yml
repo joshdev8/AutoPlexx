@@ -250,6 +250,20 @@ collections:
     collection_order: custom
     sort_title: "*113c"
     schedule: yearly(01/30)
+  Rotten Tomatoes - Best of 2024:
+    trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-best-of-2024
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    sort_title: "*113d"
+    schedule: yearly(01/30)
+  Rotten Tomatoes - Best of 2025:
+    trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-best-of-2025
+    sync_mode: sync
+    collection_mode: default
+    collection_order: custom
+    sort_title: "*113e"
+    schedule: yearly(01/30)
   Rotten Tomatoes - Best All Time:
     trakt_list: https://trakt.tv/users/lish408/lists/rotten-tomatoes-top-100-movies-of-all-time
     sync_mode: sync
