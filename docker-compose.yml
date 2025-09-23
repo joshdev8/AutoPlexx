@@ -240,7 +240,7 @@ services:
       - /etc/os-release:/host/etc/os-release:ro
 
   overseerr:
-    image: lscr.io/linuxserver/overseerr:latest
+    image: lscr.io/linuxserver/overseerr:develop
     container_name: overseerr
     networks:
       - media_network
