@@ -69,7 +69,7 @@ services:
   watchtower:
     container_name: watchtower
     restart: unless-stopped
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 0 4 * * *" --cleanup
