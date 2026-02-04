@@ -354,6 +354,23 @@ services:
       - ${USERDIR}/docker/watchlistarr/config:/app/config
     restart: unless-stopped
 
+  sentarr:
+    image: joshdev8/sentarr:main
+    container_name: sentarr
+    restart: unless-stopped
+    ports:
+      - "6500:6500"
+    volumes:
+      - ${USERDIR}/docker/plexms/Library/Application Support/Plex Media Server/Logs:/logs:ro
+      - sentarr_config:/config
+    environment:
+      - PLEX_API_ENABLED=true
+      - PLEX_URL=${PLEX_URL}:32400
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      - PLEX_LOG_PATH=/logs
+      - MONITOR_ERRORS=true
+      - MONITOR_WARNINGS=true
+
 volumes:
   netdataconfig:
   netdatalib:
@@ -362,3 +379,4 @@ volumes:
   influxdb-data:
   prometheus-data:
   portainer-data:
+  sentarr_config:
