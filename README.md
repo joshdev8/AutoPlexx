@@ -58,3 +58,4 @@ This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https
 - **Netdata:** Live host monitoring (CPU, memory, etc.).
 - **Telegraf + Prometheus + InfluxDB:** Data aggregators feeding into Grafana.
 - **Grafana:** Visualizes metrics from Telegraf, Prometheus, and InfluxDB.
+- **Sentarr:** Realtime monitoring dashboard with host information, and reporting feature to notify you of streaming errors.
