@@ -1,382 +1,64 @@
-version: "3.8"
-
-networks:
-  media_network:
-    driver: bridge
-  monitoring_network:
-    driver: bridge
-  download_network:
-    driver: bridge
-
-x-common-vars: &common-vars
-  PUID: ${PUID}
-  PGID: ${PGID}
-  TZ: ${TZ}
-
-x-common-volumes: &common-volumes >-
-  ${USERDIR}/docker/certs:/certs:ro,
-  /etc/localtime:/etc/localtime:ro
+version: '3.8'
 
 services:
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    restart: unless-stopped
-    networks:
-      - monitoring_network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-data:/data
-      - *common-volumes
-    ports:
-      - "9000:9000"
-    environment:
-      <<: *common-vars
-
-  plexms:
-    container_name: plexms
-    restart: unless-stopped
-    image: plexinc/pms-docker:plexpass
-    volumes:
-      - ${USERDIR}/docker/plexms:/config
-      - ${USERDIR}/Downloads/plex_tmp:/transcode
-      - /media/media:/media
-      - *common-volumes
-    network_mode: host
-    environment:
-      <<: *common-vars
-      HOSTNAME: ${PLEX_HOSTNAME}
-      PLEX_CLAIM: ${PLEX_CLAIM}
-      ADVERTISE_IP: ${PLEX_ADVERTISE_IP}
-
-  tautulli:
-    image: ghcr.io/linuxserver/tautulli:latest
-    container_name: tautulli
-    restart: unless-stopped
-    networks:
-      - media_network
-    volumes:
-      - ${USERDIR}/docker/plexpy:/config
-      - /var/log/plexpy:/logs:ro
-      - *common-volumes
-    ports:
-      - "8181:8181"
-    environment:
-      <<: *common-vars
-    depends_on:
-      - plexms
-
+  # MONITORING
   watchtower:
     container_name: watchtower
-    restart: unless-stopped
-    image: nickfedor/watchtower:latest
+    image: containrrr/watchtower:latest
+    networks:
+      - monitoring
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --schedule "0 0 4 * * *" --cleanup
-
-  transmission-vpn:
-    container_name: transmission-vpn
-    image: haugene/transmission-openvpn
-    networks:
-      - download_network
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    restart: unless-stopped
-    ports:
-      - "9091:9091"
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    volumes:
-      - ${USERDIR}/docker/transmission-vpn:/data
-      - ${USERDIR}/Downloads:/data/watch
-      - ${USERDIR}/Downloads/completed:/data/completed
-      - ${USERDIR}/Downloads/incomplete:/data/incomplete
-      - *common-volumes
-    environment:
-      <<: *common-vars
-      OPENVPN_PROVIDER: ${OPENVPN_PROVIDER}
-      OPENVPN_USERNAME: ${OPENVPN_USERNAME}
-      OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
-      OPENVPN_CONFIG: ${OPENVPN_CONFIG}
-      OPENVPN_OPTS: "--inactive 3600 --ping 10 --ping-exit 60 --mute-replay-warnings"
-      LOCAL_NETWORK: "192.168.86.0/24"
-      TRANSMISSION_RPC_AUTHENTICATION_REQUIRED: "true"
-      TRANSMISSION_RPC_HOST_WHITELIST: "127.0.0.*,192.168.*.*"
-      TRANSMISSION_PASSWORD: ${TRANSMISSION_PASSWORD}
-      TRANSMISSION_USERNAME: ${TRANSMISSION_USERNAME}
-      TRANSMISSION_UMASK: "2"
-      TRANSMISSION_RATIO_LIMIT_ENABLED: "true"
-      TRANSMISSION_RATIO_LIMIT: "0"
-
-  jackett:
-    image: linuxserver/jackett:latest
-    container_name: jackett
-    networks:
-      - download_network
-    volumes:
-      - ${USERDIR}/docker/jackett:/config
-      - *common-volumes
-    ports:
-      - "9117:9117"
-    restart: unless-stopped
-    environment:
-      <<: *common-vars
-
-  sonarr:
-    image: mdhiggins/sonarr-sma:latest
-    container_name: sonarr
-    networks:
-      - media_network
-      - download_network
-    volumes:
-      - /opt/appdata/sma:/usr/local/sma/config
-      - ${USERDIR}/docker/sonarr:/config
-      - ${USERDIR}/Downloads/completed:/data/completed
-      - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      - *common-volumes
-    ports:
-      - "8989:8989"
-    restart: unless-stopped
-    environment:
-      <<: *common-vars
-
-  radarr:
-    image: mdhiggins/radarr-sma:latest
-    container_name: radarr
-    networks:
-      - media_network
-      - download_network
-    volumes:
-      - /opt/appdata/sma:/usr/local/sma/config
-      - ${USERDIR}/docker/radarr:/config
-      - ${USERDIR}/media/movies:/movies
-      - ${USERDIR}/Downloads/completed:/data/completed
-      - ${USERDIR}/Downloads/completed/recyclingBin:/data/completed/recyclingBin
-      - *common-volumes
-    ports:
-      - "7878:7878"
-    restart: unless-stopped
-    environment:
-      <<: *common-vars
-
-  influxdb:
-    image: influxdb:latest
-    networks:
-      - monitoring_network
-    volumes:
-      - influxdb-data:/var/lib/influxdb2
-    env_file:
-      - .env
-    restart: unless-stopped
-    ports:
-      - "${DOCKER_INFLUXDB_INIT_PORT}:8086"
-
-  telegraf:
-    image: telegraf:latest
-    networks:
-      - monitoring_network
-    volumes:
-      - ${TELEGRAF_CFG_PATH}:/etc/telegraf/telegraf.conf:ro
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      - influxdb
 
   grafana:
-    image: grafana/grafana-oss:latest
-    networks:
-      - monitoring_network
-    volumes:
-      - grafana-data:/var/lib/grafana
-    depends_on:
-      - influxdb
-    restart: unless-stopped
+    container_name: grafana
+    image: grafana/grafana
     ports:
-      - "${GRAFANA_PORT}:3000"
-    environment:
-      <<: *common-vars
-
-  bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
-    container_name: bazarr
+      - "${GRAFANA_PORT:-3000}:3000"
     networks:
-      - media_network
-    volumes:
-      - ${USERDIR}/docker/bazarr/config:/config
-      - *common-volumes
+      - monitoring
+
+  influxdb:
+    container_name: influxdb
+    image: influxdb
     ports:
-      - "6767:6767"
-    restart: unless-stopped
-    environment:
-      <<: *common-vars
-    depends_on:
-      - radarr
-      - sonarr
-
-  netdata:
-    image: netdata/netdata:latest
-    container_name: netdata2
+      - "${DOCKER_INFLUXDB_INIT_PORT:-8086}:8086"
     networks:
-      - monitoring_network
-    ports:
-      - "19999:19999"
-    restart: unless-stopped
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - apparmor:unconfined
-    volumes:
-      - netdataconfig:/etc/netdata
-      - netdatalib:/var/lib/netdata
-      - netdatacache:/var/cache/netdata
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc/os-release:/host/etc/os-release:ro
+      - monitoring
 
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:develop
-    container_name: overseerr
-    networks:
-      - media_network
-    volumes:
-      - ${USERDIR}/docker/overseer/config:/config
-    ports:
-      - "5055:5055"
-    restart: unless-stopped
-    environment:
-      <<: *common-vars
-    depends_on:
-      - plexms
-
-  plex-meta-manager:
-    image: kometateam/kometa:latest
-    container_name: kometa
-    networks:
-      - media_network
-    environment:
-      <<: *common-vars
-      PMM_CONFIG: /config/config.yml
-      PMM_TIME: "03:00"
-      PMM_RUN: "True"
-      PMM_TEST: "False"
-      PMM_NO_MISSING: "False"
-      PMM_PLEX_URL: ${PLEX_ADVERTISE_IP}
-      PMM_PLEX_TOKEN: ${PLEX_TOKEN}
-      PMM_TMDB_API_KEY: ${TMDB_API_KEY}
-      PMM_TAUTULLI_URL: http://tautulli:8181
-      PMM_TAUTULLI_API_KEY: ${TAUTULLI_API_KEY}
-    volumes:
-      - ${USERDIR}/docker/plex-meta-manager/config:/config
-    restart: unless-stopped
-    depends_on:
-      - plexms
-
-  prometheus:
-    image: prom/prometheus:latest
-    networks:
-      - monitoring_network
-    ports:
-      - "9090:9090"
-    restart: unless-stopped
-    volumes:
-      - prometheus-data:/prometheus
-      - ${USERDIR}/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.enable-lifecycle"
-
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
-    container_name: prowlarr
-    networks:
-      - download_network
-    volumes:
-      - ${USERDIR}/docker/prowlarr:/config
-    ports:
-      - "9696:9696"
-    restart: unless-stopped
-    environment:
-      <<: *common-vars
-
-  requestrr:
-    image: darkalfx/requestrr:latest
-    container_name: requestrr
-    networks:
-      - media_network
-    ports:
-      - "4545:4545"
-    environment:
-      <<: *common-vars
-    volumes:
-      - ${USERDIR}/docker/requestrr/config:/root/config
-    restart: unless-stopped
-    depends_on:
-      - radarr
-      - sonarr
-
-  cleanarr:
-    image: selexin/cleanarr:latest
-    container_name: cleanarr
-    networks:
-      - media_network
-    ports:
-      - "5000:80"
-    environment:
-      <<: *common-vars
-      PLEX_TOKEN: ${PLEX_TOKEN}
-      PLEX_BASE_URL: ${PLEX_ADVERTISE_IP}
-      LIBRARY_NAMES: "Movies;TV Shows"
-    volumes:
-      - ${DOCKER_DIR}/cleanarr/config:/config
-    restart: unless-stopped
-    depends_on:
-      - plexms
-
+  # MEDIA CENTER
   watchlistarr:
-    image: nylonee/watchlistarr
-    environment:
-      SONARR_API_KEY: ${SONARR_API_KEY}
-      SONARR_BASE_URL: ${SONARR_URL}
-      RADARR_API_KEY: ${RADARR_API_KEY}
-      RADARR_BASE_URL: ${RADARR_URL}
-      PLEX_TOKEN: ${PLEX_TOKEN}
-      PUID: ${PUID}
-      PGID: ${PGID}
-      TZ: ${TZ}
-    volumes:
-      - ${USERDIR}/docker/watchlistarr/config:/app/config
-    restart: unless-stopped
-
+    container_name: watchlistarr
+    image: watchlistarr/watchlistarr
+    networks:
+      - media
+    depends_on:
+      service_started:
+       
   sentarr:
-    image: joshdev8/sentarr:main
     container_name: sentarr
-    restart: unless-stopped
-    ports:
-      - "6500:6500"
-    volumes:
-      - ${USERDIR}/docker/plexms/Library/Application Support/Plex Media Server/Logs:/logs:ro
-      - sentarr_config:/config
-    environment:
-      - PLEX_API_ENABLED=true
-      - PLEX_URL=${PLEX_URL}:32400
-      - PLEX_TOKEN=${PLEX_TOKEN}
-      - PLEX_LOG_PATH=/logs
-      - MONITOR_ERRORS=true
-      - MONITOR_WARNINGS=true
+    image: sentarr/sentarr
+    networks:
+      - media
+    depends_on:
+      service_started:
 
-volumes:
-  netdataconfig:
-  netdatalib:
-  netdatacache:
-  grafana-data:
-  influxdb-data:
-  prometheus-data:
-  portainer-data:
-  sentarr_config:
+  # DOWNLOADING
+  transmission:
+    container_name: transmission
+    image: transmission
+    networks:
+      - downloading
+
+  # ERROR MONITORING
+  error-monitoring:
+    container_name: error-monitoring
+    image: error-monitoring
+    networks:
+      - error
+
+networks:
+  monitoring:
+  media:
+  downloading:
+  error:
