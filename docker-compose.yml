@@ -1,64 +1,120 @@
 version: '3.8'
-
 services:
-  # MONITORING
-  watchtower:
-    container_name: watchtower
-    image: containrrr/watchtower:latest
-    networks:
-      - monitoring
+  # ============ MONITORING ============
+  plex:
+    container_name: plex
+    image: linuxserver/plex
+    network_mode: "host"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${USERDIR}/plex/config:/config
+      - ${USERDIR}/plex/media:/media
+
+  tautulli:
+    container_name: tautulli
+    image: tautulli/tautulli
+    networks:
+      - monitoring_network
+    depends_on:
+      - plex
+    volumes:
+      - ${USERDIR}/tautulli:/config
 
   grafana:
     container_name: grafana
     image: grafana/grafana
+    networks:
+      - monitoring_network
+    depends_on:
+      - telegraf
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
-    networks:
-      - monitoring
+    volumes:
+      - ${USERDIR}/grafana:/var/lib/grafana
 
-  influxdb:
-    container_name: influxdb
-    image: influxdb
-    ports:
-      - "${DOCKER_INFLUXDB_INIT_PORT:-8086}:8086"
+  telegraf:
+    container_name: telegraf
+    image: telegraf:latest
     networks:
-      - monitoring
+      - monitoring_network
+    volumes:
+      - ${USERDIR}/telegraf:/etc/telegraf
 
-  # MEDIA CENTER
+  overseerr:
+    container_name: overseerr
+    image: sctx/overseerr
+    networks:
+      - media_network
+    depends_on:
+      - plex
+    volumes:
+      - ${USERDIR}/overseerr:/app/data
+
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower:latest
+    networks:
+      - monitoring_network
+
+  # ============ MEDIA CENTER ============
   watchlistarr:
     container_name: watchlistarr
     image: watchlistarr/watchlistarr
     networks:
-      - media
-    depends_on:
-      service_started:
-       
+      - download_network
+    volumes:
+      - ${USERDIR}/watchlistarr:/config
+
   sentarr:
     container_name: sentarr
     image: sentarr/sentarr
     networks:
-      - media
+      - media_network
     depends_on:
-      service_started:
+      - plex
+    volumes:
+      - ${USERDIR}/sentarr:/config
 
-  # DOWNLOADING
+  # ============ DOWNLOADING ============
   transmission:
     container_name: transmission
-    image: transmission
+    image: linuxserver/transmission
+    environment:
+      - TRANSMISSION_RPC_HOST_WHITELIST=192.168.86.*
     networks:
-      - downloading
+      - download_network
+    volumes:
+      - ${USERDIR}/transmission/config:/config
 
-  # ERROR MONITORING
-  error-monitoring:
-    container_name: error-monitoring
-    image: error-monitoring
+  # ============ ERROR MONITORING ============
+  cleanarr:
+    container_name: cleanarr
+    image: cleanarr/cleanarr
     networks:
-      - error
+      - download_network
+    volumes:
+      - ${USERDIR}/cleanarr:/config
+
+  requestrr:
+    container_name: requestrr
+    image: requestrr/requestrr
+    networks:
+      - download_network
+    volumes:
+      - ${USERDIR}/requestrr:/config
 
 networks:
-  monitoring:
-  media:
-  downloading:
-  error:
+  monitoring_network:
+  media_network:
+  download_network:
+
+volumes:
+  plex:
+  tautulli:
+  grafana:
+  telegraf:
+  overseerr:
+  watchlistarr:
+  sentarr:
+  cleanarr:
+  requestrr:
+  transmission:
