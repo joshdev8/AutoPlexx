@@ -39,15 +39,25 @@ services:
     volumes:
       - ${USERDIR}/telegraf:/etc/telegraf
 
-  overseerr:
-    container_name: overseerr
-    image: sctx/overseerr
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
+    volumes:
+      - ${USERDIR}/docker/seerr/config:/app/config
+    ports:
+      - "5055:5055"
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
     networks:
       - media_network
-    depends_on:
-      - plex
-    volumes:
-      - ${USERDIR}/overseerr:/app/data
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
 
   watchtower:
     container_name: watchtower
@@ -102,10 +112,71 @@ services:
     volumes:
       - ${USERDIR}/requestrr:/config
 
+  tracearr:
+    image: ghcr.io/connorgallopo/tracearr:latest
+    container_name: tracearr
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - TZ=${TZ}
+      - DATABASE_URL=postgres://tracearr:${DB_PASSWORD:-tracearr}@timescale:5432/tracearr
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - COOKIE_SECRET=${COOKIE_SECRET}
+      - CORS_ORIGIN=*
+      - LOG_LEVEL=info
+    depends_on:
+      timescale:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tracearr-network
+
+  timescale:
+    image: timescale/timescaledb:latest-pg16
+    container_name: tracearr-timescale
+    shm_size: 512mb
+    environment:
+      - POSTGRES_USER=tracearr
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-tracearr}
+      - POSTGRES_DB=tracearr
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracearr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tracearr-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: tracearr-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tracearr-network
+
 networks:
   monitoring_network:
   media_network:
   download_network:
+  tracearr-network:
+    driver: bridge
 
 volumes:
   plex:
@@ -118,3 +189,5 @@ volumes:
   cleanarr:
   requestrr:
   transmission:
+  timescale_data:
+  redis_data:
