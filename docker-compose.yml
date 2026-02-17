@@ -122,11 +122,11 @@ services:
       - PORT=3000
       - HOST=0.0.0.0
       - TZ=${TZ}
-      - DATABASE_URL=postgres://tracearr:${DB_PASSWORD:-tracearr}@timescale:5432/tracearr
+      - DATABASE_URL=postgres://tracearr:${DB_PASSWORD}@timescale:5432/tracearr
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - COOKIE_SECRET=${COOKIE_SECRET}
-      - CORS_ORIGIN=*
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
+      - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET must be set}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
       - LOG_LEVEL=info
     depends_on:
       timescale:
@@ -183,7 +183,6 @@ volumes:
   tautulli:
   grafana:
   telegraf:
-  overseerr:
   watchlistarr:
   sentarr:
   cleanarr:
