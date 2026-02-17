@@ -50,7 +50,7 @@ This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https
 
 - **Portainer:** Container management.
 - **Watchtower:** Automated container updates.
-- **Overseer:** Centralized content request and management interface.
+- **Seerr:** Centralized content request and management interface.
 
 ### Monitoring
 
@@ -59,3 +59,4 @@ This setup utilizes [Docker](https://www.docker.com/) and [docker-compose](https
 - **Telegraf + Prometheus + InfluxDB:** Data aggregators feeding into Grafana.
 - **Grafana:** Visualizes metrics from Telegraf, Prometheus, and InfluxDB.
 - **Sentarr:** Realtime monitoring dashboard with host information, and reporting feature to notify you of streaming errors.
+- **Tracearr:** Track streams, analyze playback, and detect account sharing from a single dashboard.
