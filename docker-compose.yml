@@ -74,16 +74,6 @@ services:
     volumes:
       - ${USERDIR}/watchlistarr:/config
 
-  sentarr:
-    container_name: sentarr
-    image: sentarr/sentarr
-    networks:
-      - media_network
-    depends_on:
-      - plex
-    volumes:
-      - ${USERDIR}/sentarr:/config
-
   # ============ DOWNLOADING ============
   transmission:
     container_name: transmission
@@ -184,7 +174,6 @@ volumes:
   grafana:
   telegraf:
   watchlistarr:
-  sentarr:
   cleanarr:
   requestrr:
   transmission:
