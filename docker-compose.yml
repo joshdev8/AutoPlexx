@@ -1,14 +1,20 @@
-version: '3.8'
 services:
-  # ============ MONITORING ============
+  # ============ MEDIA SERVER ============
   plex:
     container_name: plex
     image: linuxserver/plex
     network_mode: "host"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - PLEX_CLAIM=${PLEX_CLAIM}
     volumes:
       - ${USERDIR}/plex/config:/config
       - ${USERDIR}/plex/media:/media
+    restart: unless-stopped
 
+  # ============ MONITORING ============
   tautulli:
     container_name: tautulli
     image: tautulli/tautulli
@@ -16,8 +22,13 @@ services:
       - monitoring_network
     depends_on:
       - plex
+    ports:
+      - "8181:8181"
+    environment:
+      - TZ=${TZ}
     volumes:
       - ${USERDIR}/tautulli:/config
+    restart: unless-stopped
 
   grafana:
     container_name: grafana
@@ -28,17 +39,35 @@ services:
       - telegraf
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - TZ=${TZ}
     volumes:
       - ${USERDIR}/grafana:/var/lib/grafana
+    restart: unless-stopped
 
   telegraf:
     container_name: telegraf
     image: telegraf:latest
     networks:
       - monitoring_network
+    environment:
+      - TZ=${TZ}
     volumes:
       - ${USERDIR}/telegraf:/etc/telegraf
+    restart: unless-stopped
 
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower:latest
+    networks:
+      - monitoring_network
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  # ============ MEDIA MANAGEMENT ============
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     init: true
@@ -59,20 +88,17 @@ services:
       interval: 15s
       retries: 3
 
-  watchtower:
-    container_name: watchtower
-    image: containrrr/watchtower:latest
-    networks:
-      - monitoring_network
-
   # ============ MEDIA CENTER ============
   watchlistarr:
     container_name: watchlistarr
     image: watchlistarr/watchlistarr
     networks:
       - download_network
+    environment:
+      - TZ=${TZ}
     volumes:
       - ${USERDIR}/watchlistarr:/config
+    restart: unless-stopped
 
   # ============ DOWNLOADING ============
   transmission:
@@ -80,10 +106,14 @@ services:
     image: linuxserver/transmission
     environment:
       - TRANSMISSION_RPC_HOST_WHITELIST=192.168.86.*
+      - TZ=${TZ}
     networks:
       - download_network
+    ports:
+      - "9091:9091"
     volumes:
       - ${USERDIR}/transmission/config:/config
+    restart: unless-stopped
 
   # ============ ERROR MONITORING ============
   cleanarr:
@@ -91,17 +121,26 @@ services:
     image: cleanarr/cleanarr
     networks:
       - download_network
+    environment:
+      - TZ=${TZ}
     volumes:
       - ${USERDIR}/cleanarr:/config
+    restart: unless-stopped
 
   requestrr:
     container_name: requestrr
     image: requestrr/requestrr
     networks:
       - download_network
+    ports:
+      - "4545:4545"
+    environment:
+      - TZ=${TZ}
     volumes:
       - ${USERDIR}/requestrr:/config
+    restart: unless-stopped
 
+  # ============ STREAM TRACKING ============
   tracearr:
     image: ghcr.io/connorgallopo/tracearr:latest
     container_name: tracearr
