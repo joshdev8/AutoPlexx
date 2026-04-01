@@ -366,7 +366,17 @@ collections:
     summary: A collection of TV shows premiering in 2025
     sort_title: "*305"
     schedule: daily
-    
+  2026 Shows:
+    plex_search:
+      all:
+        year: 2026
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of TV shows premiering in 2026
+    sort_title: "*306"
+    schedule: daily
+
   ############################
   #          STATUS          #
   ############################
