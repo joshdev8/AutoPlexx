@@ -708,12 +708,13 @@ collections:
     collection_order: release
     sort_title: "*604"
     schedule: daily
-  HBO Max:
+  Max:
     imdb_list: https://www.imdb.com/list/ls084378296
     sync_mode: sync
     collection_mode: default
     collection_order: release
     sort_title: "*605"
+    summary: Formerly HBO Max
     schedule: daily
   Paramount+:
     imdb_list: https://www.imdb.com/list/ls574137821
@@ -932,6 +933,16 @@ collections:
     collection_order: release
     summary: A collection of movies in 2025
     sort_title: "*305"
+    schedule: daily
+  2026 Movies:
+    plex_search:
+      all:
+        year: 2026
+    sync_mode: sync
+    collection_mode: default
+    collection_order: release
+    summary: A collection of movies in 2026
+    sort_title: "*306"
     schedule: daily
 
   ############################
