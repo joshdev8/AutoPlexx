@@ -131,7 +131,11 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 | [Sonarr](https://sonarr.tv/) | TV show management and downloading | `8989` |
 | [Prowlarr](https://prowlarr.com/) | Indexer manager that feeds Radarr/Sonarr | `9696` |
 | [Bazarr](https://www.bazarr.media/) | Subtitle management for Radarr/Sonarr libraries | `6767` |
+| [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) | Cloudflare bypass proxy for Prowlarr indexers | `8191` |
+| [Maintainerr](https://github.com/jorenn92/Maintainerr) | Rule-based Plex library cleanup (auto-remove watched/aged items) | `6246` |
 | [Watchlistarr](https://github.com/nylonee/watchlistarr) | Syncs Plex watchlist to Radarr/Sonarr | N/A |
+| [Decluttarr](https://github.com/ManiMatter/decluttarr) | Removes stalled / failed downloads from \*arr queues | N/A |
+| [Checkrr](https://github.com/aetaric/checkrr) | Scans media files for codec / corruption issues | `8585` |
 | [Cleanarr](https://github.com/se1exin/Cleanarr) | Finds and removes duplicate content | N/A |
 | [Requestrr](https://github.com/darkalfx/requestrr) | Discord bot for content requests | `4545` |
 
@@ -174,8 +178,8 @@ These services pair well with this stack but are not included in the default `do
 Services are isolated into separate Docker networks:
 
 - **`monitoring_network`** - Tautulli, Grafana, Telegraf, Watchtower, Portainer, Prometheus, cAdvisor, node-exporter
-- **`media_network`** - Seerr, Radarr, Sonarr, Prowlarr, Bazarr
-- **`download_network`** - Transmission, Watchlistarr, Cleanarr, Requestrr, Radarr, Sonarr
+- **`media_network`** - Seerr, Radarr, Sonarr, Prowlarr, Bazarr, FlareSolverr, Maintainerr, Checkrr
+- **`download_network`** - Transmission, Watchlistarr, Cleanarr, Requestrr, Decluttarr, Radarr, Sonarr
 - **`tracearr-network`** - Tracearr, TimescaleDB, Redis
 
 Plex runs in host network mode for optimal streaming performance. Radarr and Sonarr are attached to both `media_network` (so Seerr, Prowlarr, and Bazarr can reach them) and `download_network` (so Watchlistarr and Transmission can reach them).
