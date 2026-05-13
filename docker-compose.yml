@@ -67,6 +67,20 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    networks:
+      - monitoring_network
+    ports:
+      - "9000:9000"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: unless-stopped
+
   # ============ MEDIA MANAGEMENT ============
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
@@ -119,6 +133,37 @@ services:
       - TZ=${TZ}
     volumes:
       - ${USERDIR}/sonarr/config:/config
+      - ${USERDIR}/plex/media:/media
+    restart: unless-stopped
+
+  prowlarr:
+    container_name: prowlarr
+    image: linuxserver/prowlarr
+    networks:
+      - media_network
+    ports:
+      - "9696:9696"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/prowlarr/config:/config
+    restart: unless-stopped
+
+  bazarr:
+    container_name: bazarr
+    image: linuxserver/bazarr
+    networks:
+      - media_network
+    ports:
+      - "6767:6767"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/bazarr/config:/config
       - ${USERDIR}/plex/media:/media
     restart: unless-stopped
 
@@ -252,5 +297,8 @@ volumes:
   transmission:
   radarr:
   sonarr:
+  prowlarr:
+  bazarr:
+  portainer_data:
   timescale_data:
   redis_data:
