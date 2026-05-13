@@ -83,6 +83,62 @@ services:
       - portainer_data:/data
     restart: unless-stopped
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    networks:
+      - monitoring_network
+    ports:
+      - "9090:9090"
+    environment:
+      - TZ=${TZ}
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  # Container resource metrics for Prometheus. Reads the Docker socket
+  # read-only and several host filesystems to enumerate running containers.
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    networks:
+      - monitoring_network
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    privileged: true
+    restart: unless-stopped
+
+  # Host (kernel / disk / network) metrics for Prometheus.
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:latest
+    networks:
+      - monitoring_network
+    ports:
+      - "9100:9100"
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+
   # ============ MEDIA MANAGEMENT ============
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
@@ -318,5 +374,6 @@ volumes:
   prowlarr:
   bazarr:
   portainer_data:
+  prometheus_data:
   timescale_data:
   redis_data:

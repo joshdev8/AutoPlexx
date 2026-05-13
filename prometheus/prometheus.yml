@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+scrape_configs:
+  # Container resource metrics via cAdvisor
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Host metrics (CPU, memory, disk, network) via node_exporter
+  - job_name: "node_exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Telegraf — uncomment after enabling the prometheus_client output plugin in
+  # telegraf.conf. The container doesn't expose :9273 by default.
+  # - job_name: "telegraf"
+  #   static_configs:
+  #     - targets: ["telegraf:9273"]
+
+  # Tautulli — uncomment after installing a Prometheus metrics plugin in
+  # Tautulli. The base container does not expose /metrics natively.
+  # - job_name: "tautulli"
+  #   metrics_path: "/metrics"
+  #   static_configs:
+  #     - targets: ["tautulli:8181"]
