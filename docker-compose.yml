@@ -182,18 +182,35 @@ services:
     restart: unless-stopped
 
   # ============ DOWNLOADING ============
+  # haugene/transmission-openvpn tunnels all transmission traffic through an
+  # OpenVPN connection. NET_ADMIN + /dev/net/tun are required for the
+  # in-container OpenVPN client. LOCAL_NETWORK must include your LAN CIDR
+  # or the web UI on port 9091 will be unreachable from your machine.
   transmission:
     container_name: transmission
-    image: linuxserver/transmission
-    environment:
-      - TRANSMISSION_RPC_HOST_WHITELIST=192.168.86.*
-      - TZ=${TZ}
+    image: haugene/transmission-openvpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
     networks:
       - download_network
     ports:
       - "9091:9091"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - OPENVPN_PROVIDER=${OPENVPN_PROVIDER}
+      - OPENVPN_CONFIG=${OPENVPN_CONFIG}
+      - OPENVPN_USERNAME=${OPENVPN_USERNAME}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - LOCAL_NETWORK=${LOCAL_NETWORK:-192.168.0.0/16}
+      - TRANSMISSION_RPC_USERNAME=${TRANSMISSION_USERNAME:-}
+      - TRANSMISSION_RPC_PASSWORD=${TRANSMISSION_PASSWORD:-}
     volumes:
-      - ${USERDIR}/transmission/config:/config
+      - ${USERDIR}/transmission/data:/data
+      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
 
   # ============ ERROR MONITORING ============

@@ -29,6 +29,7 @@ A complete, opinionated [Plex Media Server](https://www.plex.tv/) stack delivere
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
 - A Plex account and a [claim token](https://www.plex.tv/claim) — generate this **immediately before** your first `docker compose up`; claim tokens expire roughly 4 minutes after they're issued
 - Values for `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` in `.env` — Tracearr refuses to start without them and will fail the whole stack's `up` command
+- OpenVPN credentials from a [supported VPN provider](https://haugene.github.io/docker-transmission-openvpn/supported-providers/) (`OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, `OPENVPN_PASSWORD`) — Transmission tunnels all traffic through OpenVPN and won't start without them. See [Transmission VPN setup](#transmission-vpn-setup) for details
 
 ## Getting Started
 
@@ -134,7 +135,7 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 
 | Service | Description | Port |
 |---------|-------------|------|
-| [Transmission](https://transmissionbt.com/) | Torrent client | `9091` |
+| [Transmission (VPN)](https://github.com/haugene/docker-transmission-openvpn) | Torrent client with OpenVPN tunnel — [setup notes](#transmission-vpn-setup) | `9091` |
 
 ### Monitoring
 
@@ -175,6 +176,39 @@ Plex runs in host network mode for optimal streaming performance. Radarr and Son
 ### A note on Portainer
 
 Portainer mounts the host's Docker socket (`/var/run/docker.sock`) so it can manage every container. **This grants the Portainer UI root-equivalent access to the host** — anyone who logs in can stop, restart, or exec into any container, including those handling secrets. Set a strong admin password on first launch and don't expose port `9000` to the public internet.
+
+## Transmission VPN setup
+
+Transmission uses the [`haugene/transmission-openvpn`](https://github.com/haugene/docker-transmission-openvpn) image, which runs an OpenVPN client inside the container and tunnels all torrent traffic through it. The container fails to start without valid VPN credentials.
+
+**Required `.env` values:**
+
+| Variable | What it is |
+|----------|------------|
+| `OPENVPN_PROVIDER` | Provider name from the [supported list](https://haugene.github.io/docker-transmission-openvpn/supported-providers/) (e.g. `MULLVAD`, `PIA`, `NORDVPN`) |
+| `OPENVPN_CONFIG` | Server / region config name — provider-specific, see your provider's section in the linked docs |
+| `OPENVPN_USERNAME` | VPN account username (the one you use to log into the VPN, not the provider portal) |
+| `OPENVPN_PASSWORD` | VPN account password |
+| `LOCAL_NETWORK` | CIDR of your LAN (default `192.168.0.0/16`) — traffic to these subnets bypasses the tunnel so the web UI stays reachable |
+
+**Optional:**
+
+- `TRANSMISSION_USERNAME` / `TRANSMISSION_PASSWORD` — auth for the Transmission web UI. Leave blank for no auth.
+
+**Required compose capabilities** (already configured in `docker-compose.yml`, mentioned here in case you fork):
+
+- `cap_add: [NET_ADMIN]`
+- `devices: [/dev/net/tun]`
+
+**Verifying the tunnel works:**
+
+```bash
+docker compose exec transmission curl -s https://ipinfo.io | grep -E '"(ip|country)"'
+```
+
+The IP and country in the response should match your VPN exit, not your home connection. If they match your home IP, the tunnel is not active — check `docker compose logs transmission` for OpenVPN errors.
+
+**If the web UI on `:9091` is unreachable:** `LOCAL_NETWORK` probably doesn't cover the subnet your machine is on. Add your subnet (e.g. `192.168.1.0/24`) to `LOCAL_NETWORK`, comma-separated if you need multiple ranges, and restart the container.
 
 ## Kometa Configuration
 

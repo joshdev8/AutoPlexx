@@ -39,7 +39,7 @@ Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, 
 
 **No Prometheus in the stack.** There is no `prometheus` service in `docker-compose.yml`. A starting-point config lives at `docs/prometheus.example.yml` for users who want to add Prometheus themselves — don't assume metrics are being scraped today.
 
-**Transmission VPN is aspirational.** The README claims VPN support and `.env.example` has `OPENVPN_*` variables, but the active image is plain `linuxserver/transmission` with no VPN sidecar or `haugene/transmission-openvpn` config. If the user wants real VPN tunneling, that's a change, not a fix.
+**Transmission uses `haugene/transmission-openvpn` and won't start without VPN credentials.** The container runs an OpenVPN client internally; `OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, and `OPENVPN_PASSWORD` must all be set in `.env`. The compose service declares `cap_add: NET_ADMIN` and `devices: /dev/net/tun` for the OpenVPN client; the data volume is `/data` (haugene's convention), not `/config` like the linuxserver image. `LOCAL_NETWORK` (CIDR, default `192.168.0.0/16`) controls which destinations bypass the tunnel — if a user reports the web UI is unreachable, this is almost always the cause.
 
 **Plex claim tokens expire in ~4 minutes.** `PLEX_CLAIM` must be set in `.env` immediately before `docker compose up -d` on first run. If the user reports a Plex auth issue on first boot, this is almost always why.
 
