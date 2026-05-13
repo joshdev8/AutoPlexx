@@ -24,8 +24,8 @@ There is no test suite. After changing `docker-compose.yml`, always run `docker 
 **Network isolation matters.** Services are split across four bridge networks and one host-mode service. A service can only reach another if they share a network — adding a new service requires picking the right one (or declaring multiple):
 
 - `monitoring_network` — tautulli, grafana, telegraf, watchtower, portainer, prometheus, cadvisor, node-exporter
-- `media_network` — seerr, radarr, sonarr, prowlarr, bazarr
-- `download_network` — transmission, watchlistarr, cleanarr, requestrr, radarr, sonarr
+- `media_network` — seerr, radarr, sonarr, prowlarr, bazarr, flaresolverr, maintainerr, checkrr
+- `download_network` — transmission, watchlistarr, cleanarr, requestrr, decluttarr, radarr, sonarr
 - `tracearr-network` — tracearr, timescale (PostgreSQL), redis
 - **host network** — plex only (required for proper streaming/discovery)
 
@@ -62,5 +62,6 @@ The mounted config directory is `plex-meta-manager/config/`. Its structure is re
 
 1. **Hard-required** (stack won't start): `DB_PASSWORD`, `JWT_SECRET`, `COOKIE_SECRET` (Tracearr); `OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, `OPENVPN_PASSWORD` (Transmission VPN). All use the `${VAR:?must be set}` fail-fast form.
 2. **Effectively required for the feature to work**: `PUID`/`PGID`/`TZ`/`USERDIR` (everything), `PLEX_CLAIM` (first-boot only), `GRAFANA_PORT` (defaults to 3000 if unset), `LOCAL_NETWORK` (Transmission, defaults to `192.168.0.0/16`), `PMM_*` (Kometa), `TRANSMISSION_RPC_USERNAME`/`TRANSMISSION_RPC_PASSWORD` (optional web UI auth).
+3. **Populated after first boot**: `RADARR_API_KEY`, `SONARR_API_KEY` (Decluttarr). These come from the Radarr/Sonarr UIs after the stack is up — Decluttarr starts fine with them blank and skips any service whose key isn't set. **Note:** this is a real exception to the "every var in `.env.example` is consumed by compose" rule above — flag this chicken-and-egg to users on first-boot questions, since the *arr API keys are only obtainable post-`up`.
 
-If a user mentions an env var not in this list (e.g. `RADARR_API_KEY`, `DOCKER_INFLUXDB_*`, `PLEX_TOKEN`), it's from an older version of the stack — not consumed today.
+If a user mentions an env var not in this list (e.g. `DOCKER_INFLUXDB_*`, `PLEX_TOKEN`, `EMAIL`/`PASSWORD`), it's from an older version of the stack — not consumed today.

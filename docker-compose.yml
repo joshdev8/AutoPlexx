@@ -225,6 +225,36 @@ services:
       - ${USERDIR}/plex/media:/media
     restart: unless-stopped
 
+  # Cloudflare bypass proxy. Prowlarr (and any other indexer client)
+  # routes requests through this to reach indexer sites behind Cloudflare.
+  flaresolverr:
+    container_name: flaresolverr
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    networks:
+      - media_network
+    ports:
+      - "8191:8191"
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    restart: unless-stopped
+
+  # Rule-based Plex library maintenance (auto-remove watched / aged items).
+  maintainerr:
+    container_name: maintainerr
+    image: ghcr.io/jorenn92/maintainerr:latest
+    networks:
+      - media_network
+    ports:
+      - "6246:6246"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/maintainerr/data:/opt/data
+    restart: unless-stopped
+
   # ============ MEDIA CENTER ============
   watchlistarr:
     container_name: watchlistarr
@@ -268,7 +298,48 @@ services:
       - ${USERDIR}/transmission/data:/data
     restart: unless-stopped
 
-  # ============ ERROR MONITORING ============
+  # ============ LIBRARY MAINTENANCE ============
+  # Cleans stalled/failed downloads out of Radarr/Sonarr queues. Skips any
+  # service whose API key is blank, so it's safe to leave keys empty on
+  # first boot and fill them in after the *arrs are running.
+  # Pinned to v1: v2 (Nov 2025) requires both base_url and api_key in
+  # structured RADARR/SONARR blocks, which breaks the blank-keys-on-first-boot
+  # workflow this service is configured around. Re-evaluate if v2 ever
+  # gains a "skip instances with empty api_key" behavior.
+  decluttarr:
+    container_name: decluttarr
+    image: ghcr.io/manimatter/decluttarr:v1.50.2
+    networks:
+      - download_network
+    environment:
+      - TZ=${TZ}
+      - LOG_LEVEL=INFO
+      - RADARR_URL=http://radarr:7878
+      - RADARR_KEY=${RADARR_API_KEY:-}
+      - SONARR_URL=http://sonarr:8989
+      - SONARR_KEY=${SONARR_API_KEY:-}
+      - REMOVE_TIMER=10
+      - REMOVE_FAILED=True
+      - REMOVE_STALLED=True
+      - REMOVE_MISSING_FILES=True
+      - REMOVE_ORPHANS=True
+    restart: unless-stopped
+
+  # Scans media files for codec / corruption issues. Web UI on :8585.
+  checkrr:
+    container_name: checkrr
+    image: ghcr.io/aetaric/checkrr:latest
+    networks:
+      - media_network
+    ports:
+      - "8585:8585"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/checkrr/config:/etc/checkrr
+      - ${USERDIR}/plex/media:/media:ro
+    restart: unless-stopped
+
   cleanarr:
     container_name: cleanarr
     image: cleanarr/cleanarr
