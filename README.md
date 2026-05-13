@@ -79,10 +79,13 @@ flowchart LR
     Seerr -->|submits to| Sonarr
     Watchlistarr -->|drives| Radarr
     Watchlistarr -->|drives| Sonarr
+    Prowlarr -->|provides indexers to| Radarr
+    Prowlarr -->|provides indexers to| Sonarr
 
     Radarr -->|sends torrents| Transmission
     Sonarr -->|sends torrents| Transmission
     Transmission -->|completed files| Plex
+    Bazarr -->|fetches subtitles for| Plex
 
     Plex -->|stream activity| Tautulli
     Plex -->|stream activity| Tracearr
@@ -121,6 +124,8 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 | [Seerr](https://github.com/seerr-team/seerr) | Content request and management interface | `5055` |
 | [Radarr](https://radarr.video/) | Movie management and downloading | `7878` |
 | [Sonarr](https://sonarr.tv/) | TV show management and downloading | `8989` |
+| [Prowlarr](https://prowlarr.com/) | Indexer manager that feeds Radarr/Sonarr | `9696` |
+| [Bazarr](https://www.bazarr.media/) | Subtitle management for Radarr/Sonarr libraries | `6767` |
 | [Watchlistarr](https://github.com/nylonee/watchlistarr) | Syncs Plex watchlist to Radarr/Sonarr | N/A |
 | [Cleanarr](https://github.com/se1exin/Cleanarr) | Finds and removes duplicate content | N/A |
 | [Requestrr](https://github.com/darkalfx/requestrr) | Discord bot for content requests | `4545` |
@@ -139,6 +144,7 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 | [Grafana](https://grafana.com/) | Metrics visualization | `3000` |
 | [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) | Metrics collection agent | N/A |
 | [Tracearr](https://github.com/connorgallopo/tracearr) | Stream tracking and account sharing detection | `3001` |
+| [Portainer](https://www.portainer.io/) | Docker management UI ([note on socket access](#a-note-on-portainer)) | `9000` |
 
 ### Infrastructure
 
@@ -153,21 +159,22 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 These services pair well with this stack but are not included in the default `docker-compose.yml`. See their respective docs to add them:
 
 - **[Lidarr](https://lidarr.audio/)** - Music management and downloading
-- **[Bazarr](https://www.bazarr.media/)** - Subtitle management
-- **[Prowlarr](https://prowlarr.com/)** - Indexer management for Radarr/Sonarr
-- **[Jackett](https://github.com/Jackett/Jackett)** - Torrent indexer aggregator
-- **[Portainer](https://www.portainer.io/)** - Docker management UI
+- **[Jackett](https://github.com/Jackett/Jackett)** - Torrent indexer aggregator (Prowlarr covers most use cases)
 
 ## Network Architecture
 
 Services are isolated into separate Docker networks:
 
-- **`monitoring_network`** - Tautulli, Grafana, Telegraf, Watchtower
-- **`media_network`** - Seerr, Radarr, Sonarr
+- **`monitoring_network`** - Tautulli, Grafana, Telegraf, Watchtower, Portainer
+- **`media_network`** - Seerr, Radarr, Sonarr, Prowlarr, Bazarr
 - **`download_network`** - Transmission, Watchlistarr, Cleanarr, Requestrr, Radarr, Sonarr
 - **`tracearr-network`** - Tracearr, TimescaleDB, Redis
 
-Plex runs in host network mode for optimal streaming performance. Radarr and Sonarr are attached to both `media_network` (so Seerr can submit requests to them) and `download_network` (so Watchlistarr and Transmission can reach them).
+Plex runs in host network mode for optimal streaming performance. Radarr and Sonarr are attached to both `media_network` (so Seerr, Prowlarr, and Bazarr can reach them) and `download_network` (so Watchlistarr and Transmission can reach them).
+
+### A note on Portainer
+
+Portainer mounts the host's Docker socket (`/var/run/docker.sock`) so it can manage every container. **This grants the Portainer UI root-equivalent access to the host** — anyone who logs in can stop, restart, or exec into any container, including those handling secrets. Set a strong admin password on first launch and don't expose port `9000` to the public internet.
 
 ## Kometa Configuration
 

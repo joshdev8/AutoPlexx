@@ -23,13 +23,15 @@ There is no test suite. After changing `docker-compose.yml`, always run `docker 
 
 **Network isolation matters.** Services are split across four bridge networks and one host-mode service. A service can only reach another if they share a network — adding a new service requires picking the right one (or declaring multiple):
 
-- `monitoring_network` — tautulli, grafana, telegraf, watchtower
-- `media_network` — seerr, radarr, sonarr
+- `monitoring_network` — tautulli, grafana, telegraf, watchtower, portainer
+- `media_network` — seerr, radarr, sonarr, prowlarr, bazarr
 - `download_network` — transmission, watchlistarr, cleanarr, requestrr, radarr, sonarr
 - `tracearr-network` — tracearr, timescale (PostgreSQL), redis
 - **host network** — plex only (required for proper streaming/discovery)
 
-Radarr and Sonarr are deliberately on both `media_network` (so Seerr can submit requests) and `download_network` (so Watchlistarr/Transmission can reach them).
+Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, and Bazarr can reach them) and `download_network` (so Watchlistarr/Transmission can reach them). Prowlarr and Bazarr only need `media_network` because their only inbound/outbound peers are the *arr APIs.
+
+**Portainer mounts the Docker socket.** `portainer/portainer-ce` binds `/var/run/docker.sock` read-write, which is root-equivalent access to the host. If a user reports security concerns, this is the relevant exposure — flag it before recommending Portainer-based workflows.
 
 **Tracearr is the only "app" in the stack.** Everything else is a single off-the-shelf container. Tracearr is a three-container subsystem (app + TimescaleDB + Redis) with healthcheck-gated `depends_on`, and it is the only service whose env vars use the `${VAR:?must be set}` fail-fast form — `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` are required or the stack will refuse to start. Its external port is `3001` mapped to internal `3000` because Grafana already owns `3000` on the host.
 
