@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in the stack isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report. Please fill out the fields below so we can reproduce the issue.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of what went wrong and what you expected instead.
+      placeholder: When I run `docker compose up -d`, the Plex container restarts in a loop...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Clone the repo at commit ...
+        2. Copy `.env.example` to `.env` and set ...
+        3. Run `docker compose up -d`
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: input
+    id: affected-service
+    attributes:
+      label: Which service(s) are affected?
+      placeholder: plex, radarr, tracearr, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Output of `docker compose logs <service>` for the affected service(s). Redact secrets first.
+      render: shell
+
+  - type: input
+    id: docker-version
+    attributes:
+      label: Docker / Docker Compose version
+      description: Output of `docker --version` and `docker compose version`.
+      placeholder: Docker 27.x / Compose v2.30.x
+    validations:
+      required: true
+
+  - type: input
+    id: host-os
+    attributes:
+      label: Host OS
+      placeholder: Ubuntu 24.04, Unraid 7.0, ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: env-checked
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I ran `docker compose config` and it parsed without errors
+          required: true
+        - label: I have `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` set in `.env`
+          required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussion
+    url: https://github.com/joshdev8/AutoPlexx/discussions
+    about: Ask "how do I do X" questions, share setup tips, or discuss ideas in Discussions instead of filing an issue.
+  - name: Plex Support
+    url: https://support.plex.tv/
+    about: Issues specific to Plex Media Server itself (not this stack) belong with Plex support.
