@@ -1,0 +1,35 @@
+name: Validate docker compose
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - '.env.example'
+      - '.github/workflows/compose-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docker-compose.yml'
+      - '.env.example'
+      - '.github/workflows/compose-validate.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env from example
+        run: |
+          cp .env.example .env
+          # Tracearr's compose entries use the ${VAR:?must be set} form, so
+          # blank placeholders in .env.example would fail interpolation. Fill
+          # them with throwaway values just for the validation step.
+          {
+            echo "DB_PASSWORD=ci-validation"
+            echo "JWT_SECRET=ci-validation"
+            echo "COOKIE_SECRET=ci-validation"
+          } >> .env
+
+      - name: docker compose config
+        run: docker compose config --quiet
