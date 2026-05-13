@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![License](https://img.shields.io/github/license/joshdev8/AutoPlexx?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/commits/main)
 [![Issues](https://img.shields.io/github/issues/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/issues)
