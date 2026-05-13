@@ -23,7 +23,7 @@ There is no test suite. After changing `docker-compose.yml`, always run `docker 
 
 **Network isolation matters.** Services are split across four bridge networks and one host-mode service. A service can only reach another if they share a network — adding a new service requires picking the right one (or declaring multiple):
 
-- `monitoring_network` — tautulli, grafana, telegraf, watchtower, portainer
+- `monitoring_network` — tautulli, grafana, telegraf, watchtower, portainer, prometheus, cadvisor, node-exporter
 - `media_network` — seerr, radarr, sonarr, prowlarr, bazarr
 - `download_network` — transmission, watchlistarr, cleanarr, requestrr, radarr, sonarr
 - `tracearr-network` — tracearr, timescale (PostgreSQL), redis
@@ -37,7 +37,9 @@ Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, 
 
 **Volume paths are intentionally user-specific.** All bind mounts are rooted at `${USERDIR}` from `.env`. When advising the user, do not assume any particular host path layout — the README explicitly tells them to update paths to match their drive mounts.
 
-**No Prometheus in the stack.** There is no `prometheus` service in `docker-compose.yml`. A starting-point config lives at `docs/prometheus.example.yml` for users who want to add Prometheus themselves — don't assume metrics are being scraped today.
+**Prometheus is live, but only cAdvisor + node-exporter feed it.** `prometheus/prometheus.yml` is mounted into the prometheus container; only the `cadvisor` and `node_exporter` scrape jobs are active. The `telegraf` and `tautulli` jobs are commented out because those containers don't expose a `/metrics` endpoint by default — telegraf would need the `prometheus_client` output plugin enabled, and Tautulli needs a metrics plugin installed. Grafana points at Prometheus the same way it would point at any data source — configure it in the Grafana UI after first boot.
+
+**cAdvisor needs `privileged: true` and several host-fs mounts.** This is the standard cAdvisor pattern; flag it if a user reports security concerns about the monitoring stack. It also binds host port `8080` — if a user has something else on `8080`, that's the conflict.
 
 **Transmission uses `haugene/transmission-openvpn` and won't start without VPN credentials.** The container runs an OpenVPN client internally; `OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, and `OPENVPN_PASSWORD` must all be set in `.env`. The compose service declares `cap_add: NET_ADMIN` and `devices: /dev/net/tun` for the OpenVPN client; the data volume is `/data` (haugene's convention), not `/config` like the linuxserver image. `LOCAL_NETWORK` (CIDR, default `192.168.0.0/16`) controls which destinations bypass the tunnel — if a user reports the web UI is unreachable, this is almost always the cause.
 

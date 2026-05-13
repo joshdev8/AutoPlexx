@@ -95,6 +95,10 @@ flowchart LR
 
     Telegraf -->|host + container metrics| Grafana
     Tautulli -->|usage data| Grafana
+
+    cAdvisor -->|container metrics| Prometheus
+    NodeExporter[node-exporter] -->|host metrics| Prometheus
+    Prometheus -->|scraped time-series| Grafana
 ```
 
 See [Network Architecture](#network-architecture) below for the exact network membership of each service.
@@ -143,6 +147,9 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 |---------|-------------|------|
 | [Tautulli](https://tautulli.com/) | Plex usage monitoring | `8181` |
 | [Grafana](https://grafana.com/) | Metrics visualization | `3000` |
+| [Prometheus](https://prometheus.io/) | Time-series metrics database — scrapes cAdvisor + node-exporter | `9090` |
+| [cAdvisor](https://github.com/google/cadvisor) | Per-container CPU / memory / network metrics | `8080` |
+| [node-exporter](https://github.com/prometheus/node_exporter) | Host (CPU / disk / network) metrics | `9100` |
 | [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) | Metrics collection agent | N/A |
 | [Tracearr](https://github.com/connorgallopo/tracearr) | Stream tracking and account sharing detection | `3001` |
 | [Portainer](https://www.portainer.io/) | Docker management UI ([note on socket access](#a-note-on-portainer)) | `9000` |
@@ -166,7 +173,7 @@ These services pair well with this stack but are not included in the default `do
 
 Services are isolated into separate Docker networks:
 
-- **`monitoring_network`** - Tautulli, Grafana, Telegraf, Watchtower, Portainer
+- **`monitoring_network`** - Tautulli, Grafana, Telegraf, Watchtower, Portainer, Prometheus, cAdvisor, node-exporter
 - **`media_network`** - Seerr, Radarr, Sonarr, Prowlarr, Bazarr
 - **`download_network`** - Transmission, Watchlistarr, Cleanarr, Requestrr, Radarr, Sonarr
 - **`tracearr-network`** - Tracearr, TimescaleDB, Redis
