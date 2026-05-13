@@ -37,7 +37,7 @@ Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, 
 
 **Volume paths are intentionally user-specific.** All bind mounts are rooted at `${USERDIR}` from `.env`. When advising the user, do not assume any particular host path layout — the README explicitly tells them to update paths to match their drive mounts.
 
-**Prometheus config is orphaned.** `prometheus/prometheus.yml` exists and references `telegraf:9273` and `tautulli:8181` as scrape targets, but there is no `prometheus` service in `docker-compose.yml`. Treat it as a stub for users who want to add Prometheus themselves — don't assume metrics are being scraped today.
+**No Prometheus in the stack.** There is no `prometheus` service in `docker-compose.yml`. A starting-point config lives at `docs/prometheus.example.yml` for users who want to add Prometheus themselves — don't assume metrics are being scraped today.
 
 **Transmission VPN is aspirational.** The README claims VPN support and `.env.example` has `OPENVPN_*` variables, but the active image is plain `linuxserver/transmission` with no VPN sidecar or `haugene/transmission-openvpn` config. If the user wants real VPN tunneling, that's a change, not a fix.
 
@@ -56,8 +56,9 @@ The mounted config directory is `plex-meta-manager/config/`. Its structure is re
 
 ## Env var contract
 
-`.env.example` is the source of truth for what `.env` needs. The values fall into three categories:
+`.env.example` is the source of truth for what `.env` needs, and every var in it is actually consumed by `docker-compose.yml`. The values fall into two categories:
 
-1. **Hard-required** (stack won't start): `DB_PASSWORD`, `JWT_SECRET`, `COOKIE_SECRET` (all Tracearr).
-2. **Effectively required for the feature to work**: `PUID`/`PGID`/`TZ`/`USERDIR` (everything), `PLEX_CLAIM` (first-boot only), `PMM_*` (Kometa).
-3. **Documented but unused by the current compose file**: `OPENVPN_*`, `DOCKER_INFLUXDB_*`, `RADARR_*`, `SONARR_*`, `EMAIL`/`PASSWORD`/`HTTP_*`/`DOMAIN*`. These exist for the "not included but recommended" services in the README or aspirational features — don't add validation for them and don't assume the user has them set.
+1. **Hard-required** (stack won't start): `DB_PASSWORD`, `JWT_SECRET`, `COOKIE_SECRET` (all Tracearr — they use the `${VAR:?must be set}` fail-fast form).
+2. **Effectively required for the feature to work**: `PUID`/`PGID`/`TZ`/`USERDIR` (everything), `PLEX_CLAIM` (first-boot only), `GRAFANA_PORT` (defaults to 3000 if unset), `PMM_*` (Kometa).
+
+If a user mentions an env var not in this list (e.g. `OPENVPN_*`, `RADARR_API_KEY`, `DOCKER_INFLUXDB_*`), it's from an older version of the stack — not consumed today.
