@@ -22,13 +22,18 @@ jobs:
       - name: Create .env from example
         run: |
           cp .env.example .env
-          # Tracearr's compose entries use the ${VAR:?must be set} form, so
-          # blank placeholders in .env.example would fail interpolation. Fill
-          # them with throwaway values just for the validation step.
+          # Several compose entries use the ${VAR:?must be set} form (Tracearr
+          # secrets and OpenVPN credentials), which would fail interpolation
+          # against the blank placeholders in .env.example. Fill them with
+          # throwaway values just for the validation step.
           {
             echo "DB_PASSWORD=ci-validation"
             echo "JWT_SECRET=ci-validation"
             echo "COOKIE_SECRET=ci-validation"
+            echo "OPENVPN_PROVIDER=ci-validation"
+            echo "OPENVPN_CONFIG=ci-validation"
+            echo "OPENVPN_USERNAME=ci-validation"
+            echo "OPENVPN_PASSWORD=ci-validation"
           } >> .env
 
       - name: docker compose config
