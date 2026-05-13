@@ -88,6 +88,40 @@ services:
       interval: 15s
       retries: 3
 
+  radarr:
+    container_name: radarr
+    image: linuxserver/radarr
+    networks:
+      - media_network
+      - download_network
+    ports:
+      - "7878:7878"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/radarr/config:/config
+      - ${USERDIR}/plex/media:/media
+    restart: unless-stopped
+
+  sonarr:
+    container_name: sonarr
+    image: linuxserver/sonarr
+    networks:
+      - media_network
+      - download_network
+    ports:
+      - "8989:8989"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/sonarr/config:/config
+      - ${USERDIR}/plex/media:/media
+    restart: unless-stopped
+
   # ============ MEDIA CENTER ============
   watchlistarr:
     container_name: watchlistarr
@@ -216,5 +250,7 @@ volumes:
   cleanarr:
   requestrr:
   transmission:
+  radarr:
+  sonarr:
   timescale_data:
   redis_data:

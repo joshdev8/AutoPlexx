@@ -1,18 +1,34 @@
-# AutoPlexx - Fully Automated Plex Media Server Setup
-<br>
+# AutoPlexx — Fully Automated Plex Media Server Setup
+
 <div align="center">
     <img src="https://github.com/joshdev8/AutoPlexx/assets/19192998/b367872b-1d48-40cf-b2f5-1aac30a10512" />
 </div>
-<br>
-<br>
 
-A fully automated [Plex Media Server](https://www.plex.tv/) ecosystem using [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/).
+<div align="center">
+
+[![License](https://img.shields.io/github/license/joshdev8/AutoPlexx?style=flat-square)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/commits/main)
+[![Issues](https://img.shields.io/github/issues/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/issues)
+[![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2+-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Plex](https://img.shields.io/badge/Plex-EBAF00?style=flat-square&logo=plex&logoColor=black)](https://www.plex.tv/)
+
+</div>
+
+A complete, opinionated [Plex Media Server](https://www.plex.tv/) stack delivered as a single [Docker Compose](https://docs.docker.com/compose/) file — bootstrap streaming, request handling, library automation, downloads, and monitoring with one command.
+
+## Why AutoPlexx?
+
+- **One command, full stack** — Plex, request handling (Seerr), library automation (Radarr/Sonarr), downloads, monitoring, and metadata curation all wired together. `docker compose up -d` and you're done.
+- **Pre-built Kometa config included** — IMDb Top 250 / Trakt / streaming-service collections, daily rotating playlists, and resolution/HDR overlays are ready to run, not a blank YAML you fill in over weeks.
+- **Network-isolated by design** — four separate Docker networks split streaming, request flow, downloading, and monitoring so a misbehaving service can't talk to the rest.
+- **Stream analytics in the box** — Tracearr ships built-in for concurrent-stream monitoring, geolocation, and account-sharing detection alongside Tautulli's usage reporting.
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
-- A Plex account and [claim token](https://www.plex.tv/claim)
-- A VPN provider account (for Transmission)
+- A Plex account and a [claim token](https://www.plex.tv/claim) — generate this **immediately before** your first `docker compose up`; claim tokens expire roughly 4 minutes after they're issued
+- Values for `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` in `.env` — Tracearr refuses to start without them and will fail the whole stack's `up` command
 
 ## Getting Started
 
@@ -29,15 +45,64 @@ A fully automated [Plex Media Server](https://www.plex.tv/) ecosystem using [Doc
     cp .env.example .env
     ```
 
-    > **Note:** Tracearr requires `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` to be set or it will fail to start.
-
-3. Update the volume paths in `docker-compose.yml` to match your hard drive mount points.
+3. Set `USERDIR` in `.env` to the parent directory where configs and media should live. All services bind-mount under `${USERDIR}/<service>`, so this one variable controls where everything lands — you don't normally need to edit `docker-compose.yml` itself.
 
 4. Start all services:
 
     ```bash
     docker compose up -d
     ```
+
+## Common Operations
+
+```bash
+docker compose ps                                # show running services
+docker compose logs -f <service>                 # tail one service's logs
+docker compose restart <service>                 # restart one service after editing its config
+docker compose pull && docker compose up -d      # update images (Watchtower also does this on a schedule)
+docker compose down                              # stop everything (named volumes preserved)
+docker compose config                            # validate YAML + env interpolation without starting anything
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+    User([User])
+    Watchlist[Plex Watchlist]
+
+    User -->|streams from| Plex
+    User -->|requests via| Seerr
+    Watchlist -->|synced by| Watchlistarr
+
+    Seerr -->|submits to| Radarr
+    Seerr -->|submits to| Sonarr
+    Watchlistarr -->|drives| Radarr
+    Watchlistarr -->|drives| Sonarr
+
+    Radarr -->|sends torrents| Transmission
+    Sonarr -->|sends torrents| Transmission
+    Transmission -->|completed files| Plex
+
+    Plex -->|stream activity| Tautulli
+    Plex -->|stream activity| Tracearr
+    Tracearr --> TimescaleDB[(TimescaleDB)]
+    Tracearr --> Redis[(Redis)]
+
+    Telegraf -->|host + container metrics| Grafana
+    Tautulli -->|usage data| Grafana
+```
+
+See [Network Architecture](#network-architecture) below for the exact network membership of each service.
+
+## Screenshots
+
+<!--
+TODO: drop screenshots into a `docs/screenshots/` directory and reference them below.
+Suggested captures: Plex web UI, Seerr discover page, Radarr/Sonarr libraries, Tautulli dashboard, Grafana panels, Tracearr dashboard.
+-->
+
+> Screenshots of the running stack — Plex, Seerr, Tautulli, Grafana, and Tracearr — coming soon. Contributions welcome via PR.
 
 ## Services
 
@@ -46,13 +111,16 @@ A fully automated [Plex Media Server](https://www.plex.tv/) ecosystem using [Doc
 | Service | Description | Port |
 |---------|-------------|------|
 | [Plex](https://www.plex.tv/) | Central media server | `32400` (host network) |
-| [Kometa](https://kometa.wiki/) | Automates metadata curation, collections, and overlays | N/A (scheduled task) |
+
+A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration is included for automated collections and overlays, but Kometa itself is not part of `docker-compose.yml` — see [Kometa Configuration](#kometa-configuration) for how to run it.
 
 ### Content Management
 
 | Service | Description | Port |
 |---------|-------------|------|
 | [Seerr](https://github.com/seerr-team/seerr) | Content request and management interface | `5055` |
+| [Radarr](https://radarr.video/) | Movie management and downloading | `7878` |
+| [Sonarr](https://sonarr.tv/) | TV show management and downloading | `8989` |
 | [Watchlistarr](https://github.com/nylonee/watchlistarr) | Syncs Plex watchlist to Radarr/Sonarr | N/A |
 | [Cleanarr](https://github.com/se1exin/Cleanarr) | Finds and removes duplicate content | N/A |
 | [Requestrr](https://github.com/darkalfx/requestrr) | Discord bot for content requests | `4545` |
@@ -61,7 +129,7 @@ A fully automated [Plex Media Server](https://www.plex.tv/) ecosystem using [Doc
 
 | Service | Description | Port |
 |---------|-------------|------|
-| [Transmission](https://transmissionbt.com/) | Torrent client with VPN support | `9091` |
+| [Transmission](https://transmissionbt.com/) | Torrent client | `9091` |
 
 ### Monitoring
 
@@ -84,8 +152,6 @@ A fully automated [Plex Media Server](https://www.plex.tv/) ecosystem using [Doc
 
 These services pair well with this stack but are not included in the default `docker-compose.yml`. See their respective docs to add them:
 
-- **[Radarr](https://radarr.video/)** - Movie management and downloading
-- **[Sonarr](https://sonarr.tv/)** - TV show management and downloading
 - **[Lidarr](https://lidarr.audio/)** - Music management and downloading
 - **[Bazarr](https://www.bazarr.media/)** - Subtitle management
 - **[Prowlarr](https://prowlarr.com/)** - Indexer management for Radarr/Sonarr
@@ -97,15 +163,24 @@ These services pair well with this stack but are not included in the default `do
 Services are isolated into separate Docker networks:
 
 - **`monitoring_network`** - Tautulli, Grafana, Telegraf, Watchtower
-- **`media_network`** - Seerr
-- **`download_network`** - Transmission, Watchlistarr, Cleanarr, Requestrr
+- **`media_network`** - Seerr, Radarr, Sonarr
+- **`download_network`** - Transmission, Watchlistarr, Cleanarr, Requestrr, Radarr, Sonarr
 - **`tracearr-network`** - Tracearr, TimescaleDB, Redis
 
-Plex runs in host network mode for optimal streaming performance.
+Plex runs in host network mode for optimal streaming performance. Radarr and Sonarr are attached to both `media_network` (so Seerr can submit requests to them) and `download_network` (so Watchlistarr and Transmission can reach them).
 
 ## Kometa Configuration
 
-The `plex-meta-manager/config/` directory contains Kometa configurations for automated collection and overlay management:
+The `plex-meta-manager/config/` directory contains a ready-to-use [Kometa](https://kometa.wiki/) configuration. Kometa itself is not in `docker-compose.yml` — run it as a one-shot container on whatever schedule you prefer (cron, systemd timer, or a separate compose file):
+
+```bash
+docker run --rm \
+  -v "$(pwd)/plex-meta-manager/config:/config" \
+  --env-file .env \
+  kometateam/kometa
+```
+
+The bundled config drives:
 
 - **Movies** - IMDb Top 250, TMDb trending, Trakt lists, Oscar categories, genre collections, streaming service collections, holiday collections, and more
 - **TV Shows** - Popular/trending, streaming networks, genres, studios (Marvel, DC), year-based collections

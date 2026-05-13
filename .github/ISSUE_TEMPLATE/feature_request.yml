@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new service to include, a config improvement, or a workflow change
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the gap or pain point, not just the proposed solution.
+      placeholder: I want the stack to also handle subtitles, but Bazarr isn't currently included...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What service, config, or convention would you add or change?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Optional — other approaches you ruled out and why.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Optional — links, screenshots, or related projects.
