@@ -323,6 +323,10 @@ services:
       - REMOVE_STALLED=True
       - REMOVE_MISSING_FILES=True
       - REMOVE_ORPHANS=True
+    labels:
+      # Tell Watchtower not to update this container — the pin above is
+      # intentional and v2 silently breaks on the v1 env var schema.
+      - "com.centurylinklabs.watchtower.enable=false"
     restart: unless-stopped
 
   # Scans media files for codec / corruption issues. Web UI on :8585.
