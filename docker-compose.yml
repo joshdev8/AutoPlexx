@@ -302,9 +302,13 @@ services:
   # Cleans stalled/failed downloads out of Radarr/Sonarr queues. Skips any
   # service whose API key is blank, so it's safe to leave keys empty on
   # first boot and fill them in after the *arrs are running.
+  # Pinned to v1: v2 (Nov 2025) requires both base_url and api_key in
+  # structured RADARR/SONARR blocks, which breaks the blank-keys-on-first-boot
+  # workflow this service is configured around. Re-evaluate if v2 ever
+  # gains a "skip instances with empty api_key" behavior.
   decluttarr:
     container_name: decluttarr
-    image: ghcr.io/manimatter/decluttarr:latest
+    image: ghcr.io/manimatter/decluttarr:v1.50.2
     networks:
       - download_network
     environment:
