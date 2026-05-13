@@ -193,7 +193,7 @@ Transmission uses the [`haugene/transmission-openvpn`](https://github.com/haugen
 
 **Optional:**
 
-- `TRANSMISSION_USERNAME` / `TRANSMISSION_PASSWORD` — auth for the Transmission web UI. Leave blank for no auth.
+- `TRANSMISSION_RPC_USERNAME` / `TRANSMISSION_RPC_PASSWORD` — auth for the Transmission web UI. Leave blank for no auth.
 
 **Required compose capabilities** (already configured in `docker-compose.yml`, mentioned here in case you fork):
 
