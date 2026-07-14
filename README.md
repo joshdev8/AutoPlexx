@@ -48,9 +48,10 @@ A complete, opinionated [Plex Media Server](https://www.plex.tv/) stack delivere
 
 3. Set `USERDIR` in `.env` to the parent directory where configs and media should live. All services bind-mount under `${USERDIR}/<service>`, so this one variable controls where everything lands — you don't normally need to edit `docker-compose.yml` itself.
 
-4. Pre-create Seerr's config directory and give it to your `PUID:PGID`:
+4. Pre-create Seerr's config directory and give it to your `PUID:PGID`. Load the values from `.env` into your shell first so the paths expand correctly (or substitute the literal values from your `.env`):
 
     ```bash
+    set -a; source .env; set +a
     mkdir -p "${USERDIR}/docker/seerr/config"
     sudo chown -R "${PUID}:${PGID}" "${USERDIR}/docker/seerr/config"
     ```
