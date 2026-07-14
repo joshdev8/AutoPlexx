@@ -258,7 +258,7 @@ services:
   # ============ MEDIA CENTER ============
   watchlistarr:
     container_name: watchlistarr
-    image: watchlistarr/watchlistarr
+    image: nylonee/watchlistarr
     networks:
       - download_network
     environment:
@@ -330,9 +330,12 @@ services:
     restart: unless-stopped
 
   # Scans media files for codec / corruption issues. Web UI on :8585.
+  # checkrr publishes no multi-arch tag — every tag is arch-suffixed, so there
+  # is no bare `latest`. amd64 hosts use `latest-amd64`; arm64 hosts must swap
+  # this to `latest-arm64v8`.
   checkrr:
     container_name: checkrr
-    image: ghcr.io/aetaric/checkrr:latest
+    image: ghcr.io/aetaric/checkrr:latest-amd64
     networks:
       - media_network
     ports:
@@ -346,7 +349,7 @@ services:
 
   cleanarr:
     container_name: cleanarr
-    image: cleanarr/cleanarr
+    image: selexin/cleanarr
     networks:
       - download_network
     environment:
@@ -357,7 +360,7 @@ services:
 
   requestrr:
     container_name: requestrr
-    image: requestrr/requestrr
+    image: thomst08/requestrr
     networks:
       - download_network
     ports:
