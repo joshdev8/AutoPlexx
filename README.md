@@ -48,7 +48,16 @@ A complete, opinionated [Plex Media Server](https://www.plex.tv/) stack delivere
 
 3. Set `USERDIR` in `.env` to the parent directory where configs and media should live. All services bind-mount under `${USERDIR}/<service>`, so this one variable controls where everything lands — you don't normally need to edit `docker-compose.yml` itself.
 
-4. Start all services:
+4. Pre-create Seerr's config directory and give it to your `PUID:PGID`:
+
+    ```bash
+    mkdir -p "${USERDIR}/docker/seerr/config"
+    sudo chown -R "${PUID}:${PGID}" "${USERDIR}/docker/seerr/config"
+    ```
+
+    Unlike the `linuxserver` images (Radarr, Sonarr, etc.), the Seerr container runs as a fixed non-root `node` user and does **not** honor `PUID`/`PGID` — it can't fix ownership itself. If this directory doesn't already exist, Docker creates it as `root` on first boot and Seerr crashes with `EACCES: permission denied, mkdir '/app/config/logs/'`. Creating it up front owned by your user avoids that.
+
+5. Start all services:
 
     ```bash
     docker compose up -d
