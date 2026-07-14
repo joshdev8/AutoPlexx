@@ -331,11 +331,11 @@ services:
 
   # Scans media files for codec / corruption issues. Web UI on :8585.
   # checkrr publishes no multi-arch tag — every tag is arch-suffixed, so there
-  # is no bare `latest`. amd64 hosts use `latest-amd64`; arm64 hosts must swap
-  # this to `latest-arm64v8`.
+  # is no bare `latest`. Defaults to amd64; arm64 hosts set
+  # CHECKRR_IMAGE_TAG=latest-arm64v8 in .env instead of editing this file.
   checkrr:
     container_name: checkrr
-    image: ghcr.io/aetaric/checkrr:latest-amd64
+    image: ghcr.io/aetaric/checkrr:${CHECKRR_IMAGE_TAG:-latest-amd64}
     networks:
       - media_network
     ports:
