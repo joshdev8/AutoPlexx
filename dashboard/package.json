@@ -1,0 +1,29 @@
+{
+  "name": "autoplexx-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AutoPlexx Command Center — unified dashboard for the AutoPlexx media stack",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=server & npm run dev --workspace=web",
+    "build": "npm run build --workspace=web && npm run build --workspace=server",
+    "start": "npm run start --workspace=server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.65.0"
+  }
+}

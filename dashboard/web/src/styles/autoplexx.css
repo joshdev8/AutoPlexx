@@ -1,0 +1,124 @@
+/*
+ * The AutoPlexx layer on top of Nocturne — ported from the design prototype's
+ * inline <style> block (`AutoPlexx Dashboard.dc.html` lines 14-35).
+ *
+ * Semantic hues are derived in OKLCH on Nocturne's ground and kept low-chroma
+ * so they sit beside the accent rather than competing with it. They are used as
+ * lines, dots and tints — never as floods, per the Nocturne guidance.
+ */
+
+:root {
+  --ap-green: oklch(78% 0.14 165);
+  --ap-green-dim: oklch(46% 0.09 165);
+  --ap-amber: oklch(82% 0.13 78);
+  --ap-amber-dim: oklch(50% 0.09 78);
+  --ap-red: oklch(72% 0.16 22);
+  --ap-red-dim: oklch(46% 0.12 22);
+  --ap-cyan: oklch(80% 0.11 220);
+  --ap-cyan-dim: oklch(48% 0.09 220);
+  --ap-violet: var(--color-accent-400);
+  --ap-violet-dim: var(--color-accent-700);
+}
+
+[data-theme='light'] {
+  --color-bg: #f3f5fe;
+  --color-surface: #ffffff;
+  --color-text: #292b31;
+  --color-divider: color-mix(in srgb, #292b31 14%, transparent);
+  --ap-green: oklch(58% 0.15 165);
+  --ap-amber: oklch(62% 0.15 78);
+  --ap-red: oklch(56% 0.19 22);
+  --ap-cyan: oklch(58% 0.13 230);
+}
+
+@keyframes ap-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ap-view {
+  animation: ap-fade 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-view {
+    animation: none;
+  }
+}
+
+/* Sidebar / nav links. */
+.ap-link {
+  color: var(--color-neutral-400);
+  text-decoration: none;
+}
+
+.ap-link:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.ap-launch:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Tinted tags and dots driven by a `--h` hue custom property. */
+.ap-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+.ap-tag[data-h] {
+  color: var(--h);
+  background: color-mix(in srgb, var(--h) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--h) 32%, transparent);
+}
+
+.ap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/*
+ * A container that is present but not running gets a ring rather than a fill,
+ * so "down" reads differently from "up" without relying on color alone.
+ */
+.ap-dot[data-state='down'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--ap-red);
+}
+
+.ap-dot[data-state='absent'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-600);
+}
+
+/* The pulse marks a transient state; it stops once the service settles. */
+.ap-dot[data-state='starting'] {
+  animation: ap-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ap-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-dot[data-state='starting'] {
+    animation: none;
+  }
+}

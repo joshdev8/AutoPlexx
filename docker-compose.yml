@@ -139,6 +139,66 @@ services:
       - /:/rootfs:ro
     restart: unless-stopped
 
+  # ============ DASHBOARD ============
+  # AutoPlexx Command Center — a single pane over the whole stack. Pulls a
+  # prebuilt image so a fresh clone needs no Node toolchain and no build step;
+  # `build:` is here for contributors (`docker compose build dashboard`).
+  #
+  # Joins three networks because it reaches Radarr/Sonarr/Seerr (media),
+  # Transmission (download) and Prometheus/Tautulli/the socket proxy
+  # (monitoring). Plex runs on the host network, so it's reached through
+  # host.docker.internal via the extra_hosts entry below.
+  #
+  # The /discover mounts are read-only and let the dashboard pick up each
+  # service's API key from the config file that service already writes — see
+  # the "Dashboard" section of README.md. They're declared now and consumed by
+  # the widgets in a follow-up; an unreadable or missing path is handled.
+  dashboard:
+    container_name: autoplexx-dashboard
+    image: ghcr.io/joshdev8/autoplexx-dashboard:latest
+    build: ./dashboard
+    networks:
+      - media_network
+      - download_network
+      - monitoring_network
+    ports:
+      - "${DASHBOARD_PORT:-8090}:8090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - TZ=${TZ}
+      - GRAFANA_PORT=${GRAFANA_PORT:-3000}
+    volumes:
+      - ${USERDIR}/sonarr/config:/discover/sonarr:ro
+      - ${USERDIR}/radarr/config:/discover/radarr:ro
+      - ${USERDIR}/prowlarr/config:/discover/prowlarr:ro
+      - ${USERDIR}/bazarr/config:/discover/bazarr:ro
+      - ${USERDIR}/tautulli:/discover/tautulli:ro
+      - ${USERDIR}/docker/seerr/config:/discover/seerr:ro
+    depends_on:
+      - docker-socket-proxy
+    restart: unless-stopped
+
+  # Read-only Docker API for the dashboard's container-status view.
+  #
+  # This deliberately does NOT mount the Docker socket into the dashboard
+  # itself. Note that `:ro` on a socket does not make the Docker API read-only
+  # — it only affects the file node — so a direct mount would be a second
+  # root-equivalent exposure alongside Portainer's. This proxy is what actually
+  # constrains access: CONTAINERS=1 permits GET /containers/json and nothing
+  # else. Every other capability is left at its default of 0.
+  docker-socket-proxy:
+    container_name: autoplexx-socket-proxy
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    networks:
+      - monitoring_network
+    environment:
+      - CONTAINERS=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
   # ============ MEDIA MANAGEMENT ============
   seerr:
     image: ghcr.io/seerr-team/seerr:latest

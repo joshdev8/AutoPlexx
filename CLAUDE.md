@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-AutoPlexx is a Docker Compose stack that orchestrates a Plex Media Server ecosystem — there is no application source code to build, lint, or test. Work here means editing `docker-compose.yml`, the `.env`/`.env.example` contract, or the Kometa / Telegraf / Prometheus config files.
+AutoPlexx is a Docker Compose stack that orchestrates a Plex Media Server ecosystem. Most work here means editing `docker-compose.yml`, the `.env`/`.env.example` contract, or the Kometa / Telegraf / Prometheus config files.
+
+The one exception is `dashboard/` — a real application (React + Vite frontend, Fastify backend) that does have a build, a lint, and a test suite. See "The dashboard app" below.
 
 ## Common commands
 
@@ -17,17 +19,38 @@ docker compose pull && docker compose up -d # update images (Watchtower also doe
 docker compose down                         # stop everything (volumes preserved)
 ```
 
-There is no test suite. After changing `docker-compose.yml`, always run `docker compose config` to catch interpolation errors before bringing services up.
+After changing `docker-compose.yml`, always run `docker compose config` to catch interpolation errors before bringing services up. Note that `docker compose config` fails on `.env.example`'s blank placeholders for the `${VAR:?...}` vars — fill them with throwaway values first, as `.github/workflows/compose-validate.yml` does.
+
+For `dashboard/`, run from that directory:
+
+```bash
+npm ci && npm run typecheck && npm run lint && npm test && npm run build
+```
+
+## The dashboard app
+
+`dashboard/` is an npm workspace root with two workspaces: `server/` (Fastify BFF) and `web/` (React SPA). It is published to `ghcr.io/joshdev8/autoplexx-dashboard` by `.github/workflows/dashboard-release.yml`; `docker-compose.yml` declares both `image:` and `build:` so users pull and contributors build. **Never remove the `image:` line in favour of `build:` alone** — that would force every person who clones this public repo to run a Node build on first `docker compose up`, which the design explicitly rules out.
+
+Things that aren't obvious:
+
+- **`server/src/services.ts` is the single source of truth** for the service list. Its `container` field must match `container_name` in `docker-compose.yml` exactly, or health lookups silently report the service as `absent`. Adding a service to compose means adding it here too.
+- **Container status comes from `docker-socket-proxy`, never a direct socket mount.** `:ro` on a socket does not make the Docker API read-only — it only affects the file node — so mounting it into the dashboard would be a second root-equivalent exposure alongside Portainer's. The proxy runs with `CONTAINERS=1` and everything else off. If asked to "simplify" by mounting the socket directly, push back.
+- **API keys are auto-discovered, not configured.** The dashboard reads each service's own config file (`config.xml` for the \*arrs, `config.ini` for Tautulli, `settings.json` for Seerr) through the read-only `/discover/*` mounts. Resolution order is env var → discovered file → unconfigured. Discovery re-runs at runtime because on a clean install those files don't exist until each service's first boot — so a panel must recover on its own without a dashboard restart.
+- **Nothing may throw on missing configuration.** An unset key or a dead upstream degrades that one panel. One failed integration must never blank the page, and a failed refresh keeps the last good data on screen.
+- **`web/src/styles/nocturne.css` is a vendored design system** from the issue #48 handoff. Take colors, spacing, radii and shadows from its `var(--*)` tokens rather than hard-coding values. Inter and Phosphor icons are self-hosted on purpose — a self-hosted media stack may have no outbound internet, so don't "optimize" them back to a CDN.
+- **Both new containers are named `autoplexx-*`** (`autoplexx-dashboard`, `autoplexx-socket-proxy`) rather than the bare `dashboard` / `docker-socket-proxy`, because those names are generic enough to collide with something a user already runs — and a `container_name` collision fails `docker compose up` outright.
 
 ## Architecture notes that aren't obvious from a glance
 
 **Network isolation matters.** Services are split across four bridge networks and one host-mode service. A service can only reach another if they share a network — adding a new service requires picking the right one (or declaring multiple):
 
-- `monitoring_network` — tautulli, grafana, telegraf, watchtower, portainer, prometheus, cadvisor, node-exporter
-- `media_network` — seerr, radarr, sonarr, prowlarr, bazarr, flaresolverr, maintainerr, checkrr
-- `download_network` — transmission, watchlistarr, cleanarr, requestrr, decluttarr, radarr, sonarr
+- `monitoring_network` — tautulli, grafana, telegraf, watchtower, portainer, prometheus, cadvisor, node-exporter, dashboard, docker-socket-proxy
+- `media_network` — seerr, radarr, sonarr, prowlarr, bazarr, flaresolverr, maintainerr, checkrr, dashboard
+- `download_network` — transmission, watchlistarr, cleanarr, requestrr, decluttarr, radarr, sonarr, dashboard
 - `tracearr-network` — tracearr, timescale (PostgreSQL), redis
 - **host network** — plex only (required for proper streaming/discovery)
+
+`dashboard` is on all three service networks because it aggregates from all of them. It reaches Plex — which is on the host network — via `host.docker.internal`, hence its `extra_hosts` entry.
 
 Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, and Bazarr can reach them) and `download_network` (so Watchlistarr/Transmission can reach them). Prowlarr and Bazarr only need `media_network` because their only inbound/outbound peers are the *arr APIs.
 
