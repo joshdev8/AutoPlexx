@@ -1,7 +1,12 @@
 import { CheckCircle, Clock, Warning } from '@phosphor-icons/react';
 
-import { usePolled } from '../hooks/usePolled';
 import type { Integration } from '../types';
+
+interface Props {
+  integrations: Integration[];
+  /** True only until the first response — a refresh never blanks the list. */
+  loading: boolean;
+}
 
 const LABEL: Record<string, string> = {
   sonarr: 'Sonarr',
@@ -25,13 +30,11 @@ const STATE = {
  * this panel exists to make that legible: on a first boot the user can watch
  * integrations connect themselves, and anything genuinely stuck names the one
  * step that fixes it. Keys are never sent to the browser — only their state.
+ *
+ * The data is polled by App and passed in, because the header's alert bell
+ * reads the same endpoint and one poll should serve both.
  */
-export function Setup() {
-  // Polled on the same cadence as server-side discovery, so a service that has
-  // just written its config shows up here without a reload.
-  const { data, loading } = usePolled<{ integrations: Integration[] }>('/api/integrations', 30_000);
-
-  const integrations = data?.integrations ?? [];
+export function Setup({ integrations, loading }: Props) {
   const live = integrations.filter((i) => i.state === 'live').length;
 
   return (
@@ -50,7 +53,7 @@ export function Setup() {
         )}
       </div>
 
-      {loading && !data ? (
+      {loading && integrations.length === 0 ? (
         <span className="text-muted" style={{ fontSize: 13 }}>
           Loading…
         </span>

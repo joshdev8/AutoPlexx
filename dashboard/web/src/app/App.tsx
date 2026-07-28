@@ -10,7 +10,8 @@ import { StackHealth } from '../components/StackHealth';
 import { Gauges } from '../components/Gauges';
 import { usePolled } from '../hooks/usePolled';
 import { useTheme } from '../hooks/useTheme';
-import type { Gauge, HealthReport, Result, ServiceGroup, VpnStatus } from '../types';
+import { deriveAlerts } from '../alerts';
+import type { Gauge, HealthReport, Integration, Result, ServiceGroup, VpnStatus } from '../types';
 
 interface ServicesResponse {
   groups: readonly { id: ServiceGroup; label: string }[];
@@ -20,6 +21,8 @@ interface ServicesResponse {
 type View = 'command' | 'launcher' | 'setup';
 
 const HEALTH_POLL_MS = 10_000;
+/** Matches the server's discovery TTL, so a newly written key surfaces promptly. */
+const INTEGRATION_POLL_MS = 30_000;
 
 export function App() {
   const [theme, toggleTheme] = useTheme();
@@ -31,9 +34,20 @@ export function App() {
   const health = usePolled<HealthReport>('/api/health', HEALTH_POLL_MS);
   const metrics = usePolled<Result<{ gauges: Gauge[] }>>('/api/metrics', 15_000);
   const vpn = usePolled<Result<VpnStatus>>('/api/vpn', 30_000);
+  // Polled here rather than inside Setup because the alert bell needs the same
+  // data — one poll feeds both, whichever view is on screen.
+  const integrations = usePolled<{ integrations: Integration[] }>(
+    '/api/integrations',
+    INTEGRATION_POLL_MS,
+  );
 
   const groups = catalog.data?.groups ?? [];
   const services = health.data?.services ?? catalog.data?.services ?? [];
+
+  const alerts = useMemo(
+    () => deriveAlerts(health.data, integrations.data?.integrations ?? []),
+    [health.data, integrations.data],
+  );
 
   const subtitle = useMemo(() => {
     const today = new Date().toLocaleDateString(undefined, {
@@ -64,7 +78,16 @@ export function App() {
       <Sidebar services={services} groups={groups} vpn={vpn.data} vpnLoading={vpn.loading} />
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <Header title="Dashboard" subtitle={subtitle} theme={theme} onToggleTheme={toggleTheme} />
+        <Header
+          title="Dashboard"
+          subtitle={subtitle}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          services={services}
+          groups={groups}
+          alerts={alerts}
+          onOpenSetup={() => setView('setup')}
+        />
 
         <div style={{ padding: 'var(--space-8)', flex: 1 }} className="ap-view">
           <div className="seg" style={{ marginBottom: 'var(--space-6)' }}>
@@ -146,7 +169,9 @@ export function App() {
             ) : (
               <Launcher services={services} groups={groups} />
             ))}
-          {view === 'setup' && <Setup />}
+          {view === 'setup' && (
+            <Setup integrations={integrations.data?.integrations ?? []} loading={integrations.loading} />
+          )}
         </div>
       </main>
     </div>
