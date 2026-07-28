@@ -51,6 +51,35 @@ export function StackHealth({ health, loading }: Props) {
     );
   }
 
+  // An empty set is not a healthy set. This happens when the proxy answers but
+  // none of the catalog's containers exist — reporting "0 / 0 up · all systems
+  // nominal" would be actively misleading.
+  if (health.total === 0) {
+    return (
+      <div className="card elev-sm" style={{ justifyContent: 'center', padding: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <Heartbeat size={18} color="var(--color-neutral-500)" weight="regular" />
+          <span className="card-kicker" style={{ color: 'var(--color-neutral-500)' }}>
+            Stack Health
+          </span>
+        </div>
+        <div
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 500,
+            fontSize: 20,
+            marginTop: 2,
+          }}
+        >
+          No services found
+        </div>
+        <div className="text-muted" style={{ fontSize: 12 }}>
+          None of the stack&rsquo;s containers are present on this host
+        </div>
+      </div>
+    );
+  }
+
   const allUp = health.up === health.total;
   const hue = allUp ? 'var(--ap-green)' : 'var(--ap-amber)';
   const attentionCount = health.total - health.up;

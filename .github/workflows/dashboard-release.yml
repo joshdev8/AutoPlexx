@@ -35,7 +35,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # The build runs dependency lifecycle scripts; don't leave the checkout
+      # token in .git/config where they can read it.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: docker/setup-qemu-action@v3
 

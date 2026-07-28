@@ -71,13 +71,25 @@ async function fetchContainers(): Promise<Map<string, DockerContainer>> {
   return byName;
 }
 
+/**
+ * The most recent report built from a successful proxy call.
+ *
+ * A blip in the proxy must not erase what we already know — without this, every
+ * service would flip to `absent` and `memoize` would cache that emptiness,
+ * blanking the sidebar and the health tile over a transient failure.
+ */
+let lastGoodReport: HealthReport | null = null;
+
 async function buildReport(): Promise<HealthReport> {
   let byName: Map<string, DockerContainer>;
   try {
     byName = await fetchContainers();
   } catch {
-    // The proxy being down must not blank the page — report every service as
-    // unknown and let the UI explain that container state is unavailable.
+    // Keep the last known state and mark it unreachable, so the UI can show
+    // real data flagged as stale rather than an empty stack.
+    if (lastGoodReport) return { ...lastGoodReport, reachable: false };
+
+    // Nothing known yet — this is the first call and it failed.
     return {
       services: SERVICES.map((service) => ({ ...service, state: 'absent', status: null })),
       up: 0,
@@ -98,15 +110,25 @@ async function buildReport(): Promise<HealthReport> {
   // never reach 100%.
   const present = services.filter((s) => s.state !== 'absent');
 
-  return {
+  const report: HealthReport = {
     services,
     up: present.filter((s) => s.state === 'up').length,
     total: present.length,
     attention: present.filter((s) => s.state === 'attn' || s.state === 'down').map((s) => s.name),
     reachable: true,
   };
+
+  lastGoodReport = report;
+  return report;
 }
 
 export const getHealth = memoize(buildReport, config.healthTtlMs);
 
-export const __test = { classify, serviceByContainer };
+export const __test = {
+  classify,
+  serviceByContainer,
+  buildReport,
+  resetLastGood: () => {
+    lastGoodReport = null;
+  },
+};

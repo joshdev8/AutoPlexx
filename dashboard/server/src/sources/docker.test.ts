@@ -34,6 +34,64 @@ test('classify: missing fields degrade to down rather than throwing', () => {
   assert.equal(classify({}), 'down');
 });
 
+test('a proxy outage keeps the last good report instead of blanking it', async (t) => {
+  const { buildReport, resetLastGood } = __test;
+  resetLastGood();
+  t.after(resetLastGood);
+
+  const container = SERVICES.find((s) => s.id === 'radarr')!;
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  // One successful poll establishes a known-good report.
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify([{ Names: [`/${container.container}`], State: 'running', Status: 'Up 1 hour' }]), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })) as typeof fetch;
+
+  const good = await buildReport();
+  assert.equal(good.reachable, true);
+  assert.equal(good.up, 1);
+  assert.equal(good.total, 1);
+
+  // The proxy then goes away.
+  globalThis.fetch = (async () => {
+    throw new Error('connection refused');
+  }) as typeof fetch;
+
+  const degraded = await buildReport();
+  assert.equal(degraded.reachable, false, 'must report the outage');
+  assert.equal(degraded.up, 1, 'but must not forget what was up');
+  assert.equal(degraded.total, 1);
+  assert.equal(
+    degraded.services.find((s) => s.id === 'radarr')?.state,
+    'up',
+    'a transient outage must not flip services to absent',
+  );
+});
+
+test('a failure before any successful poll reports nothing rather than lying', async (t) => {
+  const { buildReport, resetLastGood } = __test;
+  resetLastGood();
+  t.after(resetLastGood);
+
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = (async () => {
+    throw new Error('connection refused');
+  }) as typeof fetch;
+
+  const report = await buildReport();
+  assert.equal(report.reachable, false);
+  assert.equal(report.total, 0);
+  assert.ok(report.services.every((s) => s.state === 'absent'));
+});
+
 test('catalog: ids and container names are unique', () => {
   const ids = new Set(SERVICES.map((s) => s.id));
   const containers = new Set(SERVICES.map((s) => s.container));

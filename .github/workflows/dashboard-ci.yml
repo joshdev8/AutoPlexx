@@ -22,7 +22,11 @@ jobs:
         working-directory: dashboard
 
     steps:
+      # persist-credentials: false — `npm ci` runs dependency lifecycle scripts,
+      # and leaving the checkout token in .git/config exposes it to them.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:

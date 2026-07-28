@@ -65,7 +65,7 @@ A complete, opinionated [Plex Media Server](https://www.plex.tv/) stack delivere
     docker compose up -d
     ```
 
-6. Open the dashboard at **<http://localhost:8090>**.
+6. Open the dashboard at **<http://localhost:8090>** (or whatever `DASHBOARD_PORT` you set — `8090` is the default).
 
     There is nothing to configure — it shows every container's live status straight away, and links out to each service's own UI. As the rest of the stack finishes its first boot, the dashboard picks up each service's API key from the config file that service writes and lights up the corresponding panels on its own. See [Dashboard](#dashboard) for details.
 
@@ -172,7 +172,7 @@ A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration 
 | [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) | Metrics collection agent | N/A |
 | [Tracearr](https://github.com/connorgallopo/tracearr) | Stream tracking and account sharing detection | `3001` |
 | [Portainer](https://www.portainer.io/) | Docker management UI ([note on socket access](#a-note-on-portainer)) | `9000` |
-| AutoPlexx Dashboard | Unified status and launcher for the whole stack — [details](#dashboard) | `8090` |
+| AutoPlexx Dashboard | Unified status and launcher for the whole stack — [details](#dashboard) | `8090` (default, set by `DASHBOARD_PORT`) |
 
 ### Infrastructure
 
@@ -207,11 +207,11 @@ Portainer mounts the host's Docker socket (`/var/run/docker.sock`) so it can man
 
 ## Dashboard
 
-The AutoPlexx Command Center at **<http://localhost:8090>** is a single pane over the whole stack: live container status for every service, and a launcher that opens each one's own UI.
+The AutoPlexx Command Center — at **<http://localhost:8090>** by default, or whichever port `DASHBOARD_PORT` names — is a single pane over the whole stack: live container status for every service, and a launcher that opens each one's own UI.
 
 ### Zero configuration
 
-It works out of the box. `DASHBOARD_PORT` is the only variable it reads and it defaults to `8090`.
+It works out of the box, with no required configuration. `DASHBOARD_PORT` (default `8090`) sets the published port; everything else the dashboard reads is optional and has a working default — see [`dashboard/README.md`](dashboard/README.md#environment) for the full list, including the `*_API_KEY` overrides you only need if you run a service outside this stack.
 
 API keys are **not** something you paste in. Each service writes its own key to a config file — Sonarr, Radarr, Prowlarr and Bazarr to `config.xml`, Tautulli to `config.ini`, Seerr to `settings.json` — and the dashboard reads those files through the read-only `/discover` mounts declared in `docker-compose.yml`. Discovery re-runs while the dashboard is running, so on a first boot each panel lights up by itself shortly after the service behind it comes up. No restart, no wizard.
 
@@ -225,7 +225,18 @@ Instead, `docker-socket-proxy` sits in front with `CONTAINERS=1` and everything 
 
 ### Security posture
 
-The dashboard is **read-only** — it issues no mutating calls to any service — and it ships **no authentication**. Treat it as LAN-only. If you need it reachable from outside your network, put it behind a reverse proxy that handles auth, and don't publish port `8090` directly.
+The dashboard is **read-only** — it issues no mutating calls to any service — and it ships **no authentication**. Treat it as LAN-only.
+
+By default Compose publishes it on all interfaces (`0.0.0.0`), which is what makes `http://<your-server>:8090` work from another machine on your LAN. **If you put it behind a reverse proxy for authentication, publishing on all interfaces lets anyone reach the dashboard directly and skip that proxy entirely.** Bind it to loopback so only the proxy can reach it:
+
+```bash
+# in .env
+DASHBOARD_BIND=127.0.0.1
+```
+
+Then point your reverse proxy at `127.0.0.1:8090`. If the proxy runs in Docker rather than on the host, drop the `ports:` mapping for `dashboard` altogether and let the proxy reach it over a shared Docker network instead — a published port always bypasses the proxy. Restricting `8090` at the firewall works too, but the bind address is the harder thing to get wrong.
+
+The same reasoning applies to every other service in this stack, none of which are authenticated by default either.
 
 ### Building it yourself
 
