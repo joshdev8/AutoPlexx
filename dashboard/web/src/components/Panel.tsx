@@ -82,17 +82,36 @@ export function PanelLoading() {
 export function PanelBody<T extends object>({
   data,
   loading,
+  error,
   empty,
   children,
 }: {
   data: Result<T> | null;
   loading: boolean;
+  /**
+   * The polling error, if the request to this dashboard's own API failed.
+   * Distinct from `data.available === false`, which is the upstream declining
+   * to answer — that arrives as a successful response.
+   */
+  error?: string | null;
   /** Shown when the upstream is fine but has nothing to report. */
   empty?: string;
   children: (value: T) => ReactNode;
 }) {
   if (loading && !data) return <PanelLoading />;
-  if (!data) return <PanelEmpty result={{ reason: 'No response yet' }} />;
+  // A transport failure leaves `data` null with `loading` false. Reporting that
+  // as "No response yet" would imply the request is still coming.
+  if (!data) {
+    return (
+      <PanelEmpty
+        result={
+          error
+            ? { reason: 'Dashboard API unreachable', hint: error }
+            : { reason: 'No response yet' }
+        }
+      />
+    );
+  }
   if (!data.available) return <PanelEmpty result={data} />;
 
   const rendered = children(data);

@@ -61,7 +61,7 @@ export function App() {
         fontFamily: 'var(--font-body)',
       }}
     >
-      <Sidebar services={services} groups={groups} vpn={vpn.data} />
+      <Sidebar services={services} groups={groups} vpn={vpn.data} vpnLoading={vpn.loading} />
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Header title="Dashboard" subtitle={subtitle} theme={theme} onToggleTheme={toggleTheme} />

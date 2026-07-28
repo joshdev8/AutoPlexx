@@ -8,9 +8,11 @@ interface Props {
   services: ServiceStatus[];
   groups: readonly { id: ServiceGroup; label: string }[];
   vpn: Result<VpnStatus> | null;
+  /** True only until the first /api/vpn response — see `VpnCard`. */
+  vpnLoading: boolean;
 }
 
-export function Sidebar({ services, groups, vpn }: Props) {
+export function Sidebar({ services, groups, vpn, vpnLoading }: Props) {
   const transmission = services.find((service) => service.id === 'transmission');
 
   return (
@@ -100,7 +102,7 @@ export function Sidebar({ services, groups, vpn }: Props) {
 
       <div style={{ flex: 1 }} />
 
-      {transmission && <VpnCard transmission={transmission} vpn={vpn} />}
+      {transmission && <VpnCard transmission={transmission} vpn={vpn} loading={vpnLoading} />}
     </aside>
   );
 }
@@ -158,29 +160,39 @@ function SidebarLink({ service }: { service: ServiceStatus }) {
 function VpnCard({
   transmission,
   vpn,
+  loading,
 }: {
   transmission: ServiceStatus;
   vpn: Result<VpnStatus> | null;
+  loading: boolean;
 }) {
   const running = transmission.state === 'up';
   const responding = vpn?.available ? vpn.connected : false;
-  const healthy = running && responding;
 
   const detail = !running
     ? 'Container not running'
-    : responding
-      ? 'Container running · RPC responding'
-      : 'Container running · RPC unreachable';
+    : loading
+      ? 'Container running · checking RPC'
+      : responding
+        ? 'Container running · RPC responding'
+        : 'Container running · RPC unreachable';
+
+  /*
+   * Warn only on a confirmed problem. Before the first /api/vpn response lands
+   * there is nothing to warn about, and a warning icon that clears itself a
+   * moment later teaches people to stop reading this card.
+   */
+  const warn = !running || (!loading && !responding);
 
   const tags = vpn?.available ? [vpn.provider, vpn.server].filter(Boolean) : [];
 
   return (
     <div className="card elev-sm" style={{ marginTop: 'var(--space-4)', gap: 'var(--space-3)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {healthy ? (
-          <Shield size={20} color="var(--color-neutral-400)" weight="regular" />
-        ) : (
+        {warn ? (
           <ShieldWarning size={20} color="var(--ap-amber)" weight="regular" />
+        ) : (
+          <Shield size={20} color="var(--color-neutral-400)" weight="regular" />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, fontSize: 13 }}>
