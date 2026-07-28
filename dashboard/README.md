@@ -64,7 +64,25 @@ Every variable has a working default — the app must start and be useful agains
 | `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Socket proxy base URL |
 | `GRAFANA_PORT` | `3000` | Follows the stack's `GRAFANA_PORT` so the Launcher link is right |
 | `HEALTH_TTL_MS` | `5000` | Container-state cache TTL |
+| `DISCOVERY_TTL_MS` | `60000` | How often config files are re-read for keys |
+| `UPSTREAM_TIMEOUT_MS` | `6000` | Per-request upstream timeout |
 | `LOG_LEVEL` | `info` | Fastify log level |
+| `<SERVICE>_URL` | Compose service name | Override an upstream's address, e.g. `SONARR_URL` |
+| `<SERVICE>_API_KEY` | discovered | Override a discovered key, e.g. `TAUTULLI_API_KEY` |
+
+## Adding a widget
+
+1. Add a source module under `server/src/sources/`. It must export a `memoize`d
+   function returning `Result<T>` — use `safely()` so a failure becomes
+   `{ available: false, reason, hint }` rather than a rejection.
+2. Register a route in `server/src/index.ts`.
+3. Add the payload type to `web/src/types.ts` and render it with `<PanelBody>`,
+   which handles the loading, unavailable and empty cases for you.
+
+The `hint` is the part that matters: it should name the one concrete step that
+fixes the problem. See `hintFor()` in `sources/transmission.ts` — an auth
+failure and an unreachable host need different advice, and a generic hint sends
+people looking in the wrong place.
 
 ## Conventions
 

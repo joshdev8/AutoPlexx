@@ -207,15 +207,28 @@ Portainer mounts the host's Docker socket (`/var/run/docker.sock`) so it can man
 
 ## Dashboard
 
-The AutoPlexx Command Center — at **<http://localhost:8090>** by default, or whichever port `DASHBOARD_PORT` names — is a single pane over the whole stack: live container status for every service, and a launcher that opens each one's own UI.
+The AutoPlexx Command Center — at **<http://localhost:8090>** by default, or whichever port `DASHBOARD_PORT` names — is a single pane over the whole stack. It has three views:
+
+- **Command Center** — what's streaming now (Plex/Tautulli), active downloads with progress and ETA, pending requests (Seerr), the next episodes due (Sonarr), and a merged activity feed of recent grabs and imports.
+- **Launcher** — every service as a tile with live status, linking to its own UI.
+- **Setup** — which integrations are connected, and the one concrete step for anything that isn't.
+
+Above them, a strip of CPU / memory / storage / network gauges from Prometheus and an at-a-glance `N / M up` health tile.
 
 ### Zero configuration
 
 It works out of the box, with no required configuration. `DASHBOARD_PORT` (default `8090`) sets the published port; everything else the dashboard reads is optional and has a working default — see [`dashboard/README.md`](dashboard/README.md#environment) for the full list, including the `*_API_KEY` overrides you only need if you run a service outside this stack.
 
-API keys are **not** something you paste in. Each service writes its own key to a config file — Sonarr, Radarr, Prowlarr and Bazarr to `config.xml`, Tautulli to `config.ini`, Seerr to `settings.json` — and the dashboard reads those files through the read-only `/discover` mounts declared in `docker-compose.yml`. Discovery re-runs while the dashboard is running, so on a first boot each panel lights up by itself shortly after the service behind it comes up. No restart, no wizard.
+API keys are **not** something you paste in. Each service writes its own key to a config file — Sonarr, Radarr, Prowlarr and Bazarr to `config.xml`, Tautulli to `config.ini`, Seerr to `settings.json` — and the dashboard reads those files through the read-only `/discover` mounts declared in `docker-compose.yml`. Discovery re-runs while the dashboard is running, so on a first boot each panel lights up by itself within a minute of the service behind it coming up. No restart, no wizard.
 
-If you run one of these services outside this stack, set the matching `*_API_KEY` variable in `.env` and it takes precedence over discovery.
+The **Setup** view shows exactly where each integration stands, so you can watch them connect rather than guessing. Keys are read server-side and never sent to the browser.
+
+Two things worth knowing:
+
+- **Tautulli ships with its API disabled.** The dashboard will say so specifically rather than reporting a generic failure — enable it in Tautulli under Settings → Web Interface → API.
+- **Transmission's RPC auth isn't discoverable**, since it lives in your `.env` rather than a config file. If you've set `TRANSMISSION_RPC_USERNAME` / `TRANSMISSION_RPC_PASSWORD`, the dashboard picks them up from the same variables Transmission does. The VPN card's provider and server come from `OPENVPN_PROVIDER` / `OPENVPN_CONFIG` for the same reason.
+
+If you run one of these services outside this stack, set the matching `*_API_KEY` variable in `.env` and it takes precedence over discovery. `*_URL` variables (e.g. `SONARR_URL`) override where the dashboard looks for a service.
 
 ### Why a separate socket proxy
 
