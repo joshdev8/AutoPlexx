@@ -67,6 +67,63 @@
   box-shadow: var(--shadow-md);
 }
 
+/*
+ * Header popovers — the search menu and the alert list.
+ *
+ * z-index sits above the sticky header's own stacking context (20) so a menu
+ * opened from the header isn't clipped by the content below it.
+ */
+.ap-pop {
+  position: absolute;
+  z-index: 30;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.ap-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.ap-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+/*
+ * Keyboard and pointer highlight are the same state: the pointer sets the
+ * active index rather than styling itself, so the two can never disagree about
+ * which row Enter will open.
+ */
+.ap-menu-item[aria-selected='true'] {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+/* The unread count on the alert bell. */
+.ap-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ap-amber);
+  color: var(--color-bg);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
 /* Tinted tags and dots driven by a `--h` hue custom property. */
 .ap-tag {
   display: inline-flex;

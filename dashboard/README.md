@@ -84,6 +84,16 @@ fixes the problem. See `hintFor()` in `sources/transmission.ts` — an auth
 failure and an unreachable host need different advice, and a generic hint sends
 people looking in the wrong place.
 
+## The header
+
+Three controls, all reading data the app already polls:
+
+- **Search** (`components/CommandSearch.tsx`) filters the service catalog and opens the one you pick. Focus it with `/` or `Ctrl`/`Cmd`+`K`. Only services with a published port are offered as results, since opening one is the only thing a result does — services without a web UI are named in a footer line instead of appearing as rows that do nothing on Enter.
+- **Request** deep-links to Seerr rather than posting a request. The dashboard is read-only and ships no auth, so a request endpoint here would let anyone who can reach the page add to the library under Seerr's credentials with no record of who did it. Seerr already has accounts and approval rules.
+- **Alerts** (`components/Notifications.tsx`) is derived in the browser by `alerts.ts` from `/api/health` plus `/api/integrations` — both already on screen, so a dedicated endpoint would re-poll the same sources to produce something the client can assemble for free.
+
+Two states deliberately don't raise an alert: `absent` services (a user who trimmed services out of their compose file shouldn't get permanent alerts for things they chose not to run) and `waiting` integrations (the normal state on a clean install — alerting would mean a first boot opens with a full inbox that clears itself). When the socket proxy is unreachable, every service reads `absent`, so that case short-circuits to a single alert naming the proxy rather than reporting nothing at all.
+
 ## Conventions
 
 - **Nothing may throw on missing configuration.** An unset key or an unreachable upstream degrades that one panel; it never blanks the page.
