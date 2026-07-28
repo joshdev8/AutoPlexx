@@ -13,3 +13,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Dashboard build artifacts
+node_modules/
+dashboard/*/dist/
