@@ -162,7 +162,11 @@ services:
       - download_network
       - monitoring_network
     ports:
-      - "${DASHBOARD_PORT:-8090}:8090"
+      # DASHBOARD_BIND defaults to all interfaces so the dashboard is reachable
+      # from other machines on the LAN. Set it to 127.0.0.1 when fronting the
+      # dashboard with an authenticating reverse proxy — otherwise the published
+      # port lets anyone bypass that proxy.
+      - "${DASHBOARD_BIND:-0.0.0.0}:${DASHBOARD_PORT:-8090}:8090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:

@@ -10,9 +10,20 @@ function num(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/**
+ * Ports need tighter validation than a generic positive number: a fractional
+ * value stops Fastify binding, and anything above 65535 silently produces a
+ * launcher link that can never resolve. Fall back rather than fail — a typo in
+ * `.env` should not stop the dashboard starting.
+ */
+function port(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 65_535 ? parsed : fallback;
+}
+
 export const config = {
   /** Port the dashboard itself listens on inside the container. */
-  port: num(process.env.DASHBOARD_PORT, 8090),
+  port: port(process.env.DASHBOARD_PORT, 8090),
   host: process.env.DASHBOARD_HOST ?? '0.0.0.0',
 
   /**
@@ -26,7 +37,7 @@ export const config = {
    * Grafana's host port is user-configurable via GRAFANA_PORT, so the Launcher
    * link has to follow it rather than assume 3000.
    */
-  grafanaPort: num(process.env.GRAFANA_PORT, 3000),
+  grafanaPort: port(process.env.GRAFANA_PORT, 3000),
 
   /** How long container state is cached, in ms. Keeps polling off the proxy. */
   healthTtlMs: num(process.env.HEALTH_TTL_MS, 5_000),

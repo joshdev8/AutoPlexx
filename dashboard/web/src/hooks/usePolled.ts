@@ -20,20 +20,30 @@ export function usePolled<T>(url: string, intervalMs: number): Polled<T> {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const cancelled = useRef(false);
+  /**
+   * Monotonic request counter. The interval and the visibility handler can both
+   * fire a request, and StrictMode double-mounts in development — so two can be
+   * in flight at once and a slow older response could otherwise land last and
+   * overwrite newer data. Only the most recent request may commit state.
+   */
+  const latestRequest = useRef(0);
 
   const load = useCallback(async () => {
+    const request = ++latestRequest.current;
+    const isStale = () => cancelled.current || request !== latestRequest.current;
+
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       const json = (await response.json()) as T;
-      if (cancelled.current) return;
+      if (isStale()) return;
       setData(json);
       setError(null);
     } catch (cause) {
-      if (cancelled.current) return;
+      if (isStale()) return;
       setError(cause instanceof Error ? cause.message : 'request failed');
     } finally {
-      if (!cancelled.current) setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   }, [url]);
 

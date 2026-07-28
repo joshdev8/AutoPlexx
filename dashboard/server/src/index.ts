@@ -7,7 +7,7 @@ import fastifyStatic from '@fastify/static';
 
 import { config } from './config.js';
 import { getHealth } from './sources/docker.js';
-import { SERVICES, VISIBLE_GROUPS } from './services.js';
+import { SERVICES, VISIBLE_GROUPS, withResolvedPorts } from './services.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 // In the built image the SPA sits next to the compiled server as ../web.
@@ -27,22 +27,13 @@ app.get('/healthz', async () => ({ ok: true }));
  */
 app.get('/api/services', async () => ({
   groups: VISIBLE_GROUPS,
-  services: SERVICES.map((service) => ({
-    ...service,
-    port: service.id === 'grafana' ? config.grafanaPort : service.port,
-  })),
+  services: withResolvedPorts([...SERVICES], config.grafanaPort),
 }));
 
 /** Live container state behind a short TTL cache. Never throws. */
 app.get('/api/health', async () => {
   const report = await getHealth();
-  return {
-    ...report,
-    services: report.services.map((service) => ({
-      ...service,
-      port: service.id === 'grafana' ? config.grafanaPort : service.port,
-    })),
-  };
+  return { ...report, services: withResolvedPorts(report.services, config.grafanaPort) };
 });
 
 // Serve the built SPA. Skipped in dev, where Vite serves the frontend itself.

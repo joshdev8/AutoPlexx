@@ -35,7 +35,9 @@ export function App() {
       day: 'numeric',
     });
     if (!health.data) return today;
-    if (!health.data.reachable) return `${today} · container state unavailable`;
+    if (!health.data.reachable) return `${today} · container state may be stale`;
+    // Guard total === 0 so an empty stack isn't announced as nominal.
+    if (health.data.total === 0) return `${today} · no services found`;
     const nominal = health.data.up === health.data.total;
     return `${today} · ${nominal ? 'all systems nominal' : `${health.data.attention.length} need attention`}`;
   }, [health.data]);

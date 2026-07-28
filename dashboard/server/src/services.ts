@@ -191,7 +191,8 @@ export const SERVICES: readonly ServiceDef[] = [
     container: 'grafana',
     group: 'monitoring',
     hue: 'amber',
-    // Host port is ${GRAFANA_PORT:-3000}; resolved from env at request time.
+    // Compose publishes Grafana on ${GRAFANA_PORT:-3000}, so this is only the
+    // default — `withResolvedPorts()` below substitutes the configured value.
     port: 3000,
     blurb: 'Metrics visualization',
   },
@@ -331,4 +332,18 @@ export const VISIBLE_GROUPS = [
 
 export function serviceByContainer(container: string): ServiceDef | undefined {
   return SERVICES.find((s) => s.container === container);
+}
+
+/**
+ * Substitutes host ports that the user can reconfigure in `.env`.
+ *
+ * Only Grafana currently has one — compose publishes it on
+ * `${GRAFANA_PORT:-3000}` — but every route that hands services to the client
+ * must go through here, or a non-default port produces a launcher link that
+ * silently fails.
+ */
+export function withResolvedPorts<T extends ServiceDef>(services: T[], grafanaPort: number): T[] {
+  return services.map((service) =>
+    service.id === 'grafana' ? { ...service, port: grafanaPort } : service,
+  );
 }

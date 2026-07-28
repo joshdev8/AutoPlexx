@@ -56,7 +56,9 @@ Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, 
 
 **Portainer mounts the Docker socket.** `portainer/portainer-ce` binds `/var/run/docker.sock` read-write, which is root-equivalent access to the host. If a user reports security concerns, this is the relevant exposure — flag it before recommending Portainer-based workflows.
 
-**Tracearr is the only "app" in the stack.** Everything else is a single off-the-shelf container. Tracearr is a three-container subsystem (app + TimescaleDB + Redis) with healthcheck-gated `depends_on`, and it is the only service whose env vars use the `${VAR:?must be set}` fail-fast form — `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` are required or the stack will refuse to start. Its external port is `3001` mapped to internal `3000` because Grafana already owns `3000` on the host.
+**Tracearr is the only multi-container subsystem.** Every other third-party service is a single off-the-shelf container. Tracearr is three containers (app + TimescaleDB + Redis) with healthcheck-gated `depends_on`. Its external port is `3001` mapped to internal `3000` because Grafana already owns `3000` on the host. (The only first-party *application* in this repo is `dashboard/` — see above.)
+
+**Two groups of vars use the `${VAR:?must be set}` fail-fast form**, and a blank value in either fails `docker compose up` for the whole stack, not just that service: Tracearr's `DB_PASSWORD` / `JWT_SECRET` / `COOKIE_SECRET`, and Transmission's `OPENVPN_PROVIDER` / `OPENVPN_CONFIG` / `OPENVPN_USERNAME` / `OPENVPN_PASSWORD`.
 
 **Volume paths are intentionally user-specific.** All bind mounts are rooted at `${USERDIR}` from `.env`. When advising the user, do not assume any particular host path layout — the README explicitly tells them to update paths to match their drive mounts.
 
