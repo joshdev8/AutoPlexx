@@ -118,6 +118,50 @@ test('an approved request that is processing reads as Downloading', () => {
   assert.equal(seerr.statusOf({ status: 3 }), 'Declined');
 });
 
+test('the pending count comes from a filtered query, not the visible page', async () => {
+  const calls: string[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string) => {
+    calls.push(String(url));
+    return new Response(JSON.stringify({ pageInfo: { results: 23 }, results: [] }), {
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  try {
+    // 23 outstanding, far beyond what the 8-row page could show.
+    assert.equal(await seerr.pendingCount('key', 3), 23);
+    assert.ok(calls[0]?.includes('filter=pending'), 'query must be filtered to pending');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('a failed or shapeless pending count falls back to the visible rows', async () => {
+  const realFetch = globalThis.fetch;
+
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ results: [] }), {
+      headers: { 'content-type': 'application/json' },
+    })) as typeof fetch;
+  try {
+    // No pageInfo in the response — an older Seerr, or a changed shape.
+    assert.equal(await seerr.pendingCount('key', 3), 3);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+
+  globalThis.fetch = (async () => {
+    throw new Error('connection refused');
+  }) as typeof fetch;
+  try {
+    // The list already loaded; a failed count must not cost the panel its rows.
+    assert.equal(await seerr.pendingCount('key', 3), 3);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 // ---- Sonarr calendar -------------------------------------------------------
 
 test('an episode with a file is downloaded regardless of air date', () => {

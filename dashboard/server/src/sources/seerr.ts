@@ -98,6 +98,29 @@ async function titleFor(
   }
 }
 
+/**
+ * The number of outstanding requests, from its own filtered query.
+ *
+ * Counting the `Pending` rows in the list below would cap the total at the page
+ * size, so a household with more than eight open requests — or with old ones
+ * still waiting behind newer arrivals — would see a count that quietly
+ * understates. `take=1` because only `pageInfo.results` is wanted; the row
+ * itself is discarded.
+ */
+async function pendingCount(apiKey: string, fallback: number): Promise<number> {
+  try {
+    const page = await getJson<SeerrPage>(
+      `${config.upstream.seerr}/api/v1/request?filter=pending&take=1&skip=0`,
+      { 'X-Api-Key': apiKey },
+    );
+    return page.pageInfo?.results ?? fallback;
+  } catch {
+    // The list already loaded successfully; a failed count shouldn't cost the
+    // panel its rows, so fall back to what the visible page can prove.
+    return fallback;
+  }
+}
+
 async function load(): Promise<RequestsPayload> {
   const credential = await credentialFor('seerr');
   if (!credential.apiKey) throw new Error(credential.hint ?? 'Seerr API key not found yet');
@@ -126,7 +149,10 @@ async function load(): Promise<RequestsPayload> {
 
   return {
     requests,
-    pending: requests.filter((r) => r.status === 'Pending').length,
+    pending: await pendingCount(
+      credential.apiKey,
+      requests.filter((r) => r.status === 'Pending').length,
+    ),
   };
 }
 
@@ -138,4 +164,4 @@ export const getRequests = memoize<Result<RequestsPayload>>(async () => {
   return safely(load);
 }, config.ttl.requests);
 
-export const __test = { relative, statusOf };
+export const __test = { relative, statusOf, pendingCount };

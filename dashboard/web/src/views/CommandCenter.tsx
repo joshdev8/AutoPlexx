@@ -74,7 +74,7 @@ export function CommandCenter() {
           ) : null
         }
       >
-        <PanelBody data={streams.data} loading={streams.loading}>
+        <PanelBody data={streams.data} loading={streams.loading} error={streams.error}>
           {(value) =>
             value.streams.length === 0 ? (
               <span className="text-muted" style={{ fontSize: 13 }}>
@@ -102,7 +102,7 @@ export function CommandCenter() {
           </span>
         }
       >
-        <PanelBody data={downloads.data} loading={downloads.loading}>
+        <PanelBody data={downloads.data} loading={downloads.loading} error={downloads.error}>
           {(value) =>
             value.downloads.length === 0 ? (
               <span className="text-muted" style={{ fontSize: 13 }}>
@@ -120,7 +120,7 @@ export function CommandCenter() {
       </Panel>
 
       <Panel title="Upcoming" source="Sonarr" span={4}>
-        <PanelBody data={upcoming.data} loading={upcoming.loading}>
+        <PanelBody data={upcoming.data} loading={upcoming.loading} error={upcoming.error}>
           {(value) =>
             value.items.length === 0 ? (
               <span className="text-muted" style={{ fontSize: 13 }}>
@@ -147,7 +147,7 @@ export function CommandCenter() {
           ) : null
         }
       >
-        <PanelBody data={requests.data} loading={requests.loading}>
+        <PanelBody data={requests.data} loading={requests.loading} error={requests.error}>
           {(value) =>
             value.requests.length === 0 ? (
               <span className="text-muted" style={{ fontSize: 13 }}>
@@ -173,7 +173,7 @@ export function CommandCenter() {
           </span>
         }
       >
-        <PanelBody data={activity.data} loading={activity.loading}>
+        <PanelBody data={activity.data} loading={activity.loading} error={activity.error}>
           {(value) =>
             value.items.length === 0 ? (
               <span className="text-muted" style={{ fontSize: 13 }}>
