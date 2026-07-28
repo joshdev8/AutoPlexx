@@ -2,14 +2,15 @@ import { Shield, ShieldWarning } from '@phosphor-icons/react';
 
 import { ServiceIcon } from '../components/ServiceIcon';
 import { StatusDot } from '../components/StatusDot';
-import { serviceUrl, type ServiceGroup, type ServiceStatus } from '../types';
+import { serviceUrl, type Result, type ServiceGroup, type ServiceStatus, type VpnStatus } from '../types';
 
 interface Props {
   services: ServiceStatus[];
   groups: readonly { id: ServiceGroup; label: string }[];
+  vpn: Result<VpnStatus> | null;
 }
 
-export function Sidebar({ services, groups }: Props) {
+export function Sidebar({ services, groups, vpn }: Props) {
   const transmission = services.find((service) => service.id === 'transmission');
 
   return (
@@ -99,7 +100,7 @@ export function Sidebar({ services, groups }: Props) {
 
       <div style={{ flex: 1 }} />
 
-      {transmission && <VpnCard transmission={transmission} />}
+      {transmission && <VpnCard transmission={transmission} vpn={vpn} />}
     </aside>
   );
 }
@@ -140,36 +141,65 @@ function SidebarLink({ service }: { service: ServiceStatus }) {
 }
 
 /**
- * Transmission's container state.
+ * Transmission's state, and the VPN it's configured against.
  *
- * The design mocked this up as a VPN status card with provider, region and
- * latency. None of that is knowable from outside the container, and — more
- * importantly — a running container is *not* proof that the tunnel came up or
- * that egress is protected. haugene/transmission-openvpn does gate traffic on
- * the tunnel, but this card can only observe the container, so it reports
- * exactly that and claims nothing about protection. Provider and server names
- * arrive in phase 2 from OPENVPN_PROVIDER / OPENVPN_CONFIG.
+ * The design mocked this as a VPN status card with provider, region and
+ * latency. Two things it deliberately does not do:
+ *
+ *  - It does not claim the tunnel is up. Neither a running container nor a
+ *    responding RPC proves the tunnel established or that egress is protected.
+ *    haugene/transmission-openvpn does gate traffic on the tunnel, but this
+ *    card can only observe from outside, so it reports what it observed and
+ *    claims nothing more.
+ *  - It does not show latency, which isn't knowable from out here. The provider
+ *    and server names are real — they come from the same OPENVPN_* variables
+ *    Transmission itself reads — so they're shown as configuration, not status.
  */
-function VpnCard({ transmission }: { transmission: ServiceStatus }) {
+function VpnCard({
+  transmission,
+  vpn,
+}: {
+  transmission: ServiceStatus;
+  vpn: Result<VpnStatus> | null;
+}) {
   const running = transmission.state === 'up';
+  const responding = vpn?.available ? vpn.connected : false;
+  const healthy = running && responding;
+
+  const detail = !running
+    ? 'Container not running'
+    : responding
+      ? 'Container running · RPC responding'
+      : 'Container running · RPC unreachable';
+
+  const tags = vpn?.available ? [vpn.provider, vpn.server].filter(Boolean) : [];
 
   return (
     <div className="card elev-sm" style={{ marginTop: 'var(--space-4)', gap: 'var(--space-3)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {running ? (
+        {healthy ? (
           <Shield size={20} color="var(--color-neutral-400)" weight="regular" />
         ) : (
           <ShieldWarning size={20} color="var(--ap-amber)" weight="regular" />
         )}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, fontSize: 13 }}>
             Transmission
           </div>
           <div className="text-muted" style={{ fontSize: 11 }}>
-            {running ? 'Container running · VPN image' : 'Container not running'}
+            {detail}
           </div>
         </div>
       </div>
+      {tags.length > 0 && (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          {tags.map((tag) => (
+            <span key={tag} className="tag tag-neutral">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

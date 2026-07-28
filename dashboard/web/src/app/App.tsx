@@ -1,28 +1,36 @@
-import { useMemo } from 'react';
-import { WarningCircle } from '@phosphor-icons/react';
+import { useMemo, useState } from 'react';
+import { GridNine, Sliders, SquaresFour, WarningCircle } from '@phosphor-icons/react';
 
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Launcher } from '../views/Launcher';
+import { CommandCenter } from '../views/CommandCenter';
+import { Setup } from '../views/Setup';
 import { StackHealth } from '../components/StackHealth';
+import { Gauges } from '../components/Gauges';
 import { usePolled } from '../hooks/usePolled';
 import { useTheme } from '../hooks/useTheme';
-import type { HealthReport, ServiceGroup } from '../types';
+import type { Gauge, HealthReport, Result, ServiceGroup, VpnStatus } from '../types';
 
 interface ServicesResponse {
   groups: readonly { id: ServiceGroup; label: string }[];
   services: HealthReport['services'];
 }
 
+type View = 'command' | 'launcher' | 'setup';
+
 const HEALTH_POLL_MS = 10_000;
 
 export function App() {
   const [theme, toggleTheme] = useTheme();
+  const [view, setView] = useState<View>('command');
 
   // The catalog is static, so it's fetched once and never polled; only live
   // container state is refreshed.
   const catalog = usePolled<ServicesResponse>('/api/services', 60 * 60 * 1000);
   const health = usePolled<HealthReport>('/api/health', HEALTH_POLL_MS);
+  const metrics = usePolled<Result<{ gauges: Gauge[] }>>('/api/metrics', 15_000);
+  const vpn = usePolled<Result<VpnStatus>>('/api/vpn', 30_000);
 
   const groups = catalog.data?.groups ?? [];
   const services = health.data?.services ?? catalog.data?.services ?? [];
@@ -53,20 +61,59 @@ export function App() {
         fontFamily: 'var(--font-body)',
       }}
     >
-      <Sidebar services={services} groups={groups} />
+      <Sidebar services={services} groups={groups} vpn={vpn.data} />
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <Header
-          title="Dashboard"
-          subtitle={subtitle}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-        />
+        <Header title="Dashboard" subtitle={subtitle} theme={theme} onToggleTheme={toggleTheme} />
 
         <div style={{ padding: 'var(--space-8)', flex: 1 }} className="ap-view">
-          <div style={{ marginBottom: 'var(--space-6)', maxWidth: 420 }}>
-            <StackHealth health={health.data} loading={health.loading} />
+          <div className="seg" style={{ marginBottom: 'var(--space-6)' }}>
+            <label className="seg-opt">
+              <input
+                type="radio"
+                name="ap-home"
+                checked={view === 'command'}
+                onChange={() => setView('command')}
+              />
+              <SquaresFour size={15} />
+              Command Center
+            </label>
+            <label className="seg-opt">
+              <input
+                type="radio"
+                name="ap-home"
+                checked={view === 'launcher'}
+                onChange={() => setView('launcher')}
+              />
+              <GridNine size={15} />
+              Launcher
+            </label>
+            <label className="seg-opt">
+              <input
+                type="radio"
+                name="ap-home"
+                checked={view === 'setup'}
+                onChange={() => setView('setup')}
+              />
+              <Sliders size={15} />
+              Setup
+            </label>
           </div>
+
+          {/* The resource strip stays on both data views — it's the "is the box OK" line. */}
+          {view !== 'setup' && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr) 1.3fr',
+                gap: 'var(--space-4)',
+                marginBottom: 'var(--space-6)',
+              }}
+            >
+              <Gauges data={metrics.data} loading={metrics.loading} />
+              <StackHealth health={health.data} loading={health.loading} />
+            </div>
+          )}
 
           {/*
             A failed refresh keeps the last good data on screen, so this banner
@@ -90,13 +137,16 @@ export function App() {
             </div>
           )}
 
-          {catalog.loading ? (
-            <span className="text-muted" style={{ fontSize: 13 }}>
-              Loading services…
-            </span>
-          ) : (
-            <Launcher services={services} groups={groups} />
-          )}
+          {view === 'command' && <CommandCenter />}
+          {view === 'launcher' &&
+            (catalog.loading ? (
+              <span className="text-muted" style={{ fontSize: 13 }}>
+                Loading services…
+              </span>
+            ) : (
+              <Launcher services={services} groups={groups} />
+            ))}
+          {view === 'setup' && <Setup />}
         </div>
       </main>
     </div>
