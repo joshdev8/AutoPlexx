@@ -213,7 +213,7 @@ export function CommandSearch({ services, groups }: Props) {
                 }}
                 onMouseEnter={() => setActive(index)}
               >
-                <ServiceIcon mono={service.mono} hue={service.hue} />
+                <ServiceIcon id={service.id} mono={service.mono} hue={service.hue} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 14 }}>{service.name}</span>
                   <span className="text-muted" style={{ display: 'block', fontSize: 11 }}>

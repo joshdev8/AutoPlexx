@@ -112,7 +112,7 @@ function SidebarLink({ service }: { service: ServiceStatus }) {
 
   const inner = (
     <>
-      <ServiceIcon mono={service.mono} hue={service.hue} />
+      <ServiceIcon id={service.id} mono={service.mono} hue={service.hue} />
       <span style={{ flex: 1 }}>{service.name}</span>
       <StatusDot state={service.state} size={7} detail={service.status} />
     </>
