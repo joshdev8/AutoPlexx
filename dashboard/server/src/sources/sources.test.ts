@@ -52,6 +52,53 @@ test('episode sessions render as SxxEyy, movies as a year', () => {
   assert.equal(movie.meta, '2024');
 });
 
+test('only Plex metadata image paths are accepted', () => {
+  assert.ok(tautulli.isPlexImagePath('/library/metadata/130222/thumb/1785273308'));
+  assert.ok(tautulli.isPlexImagePath('/library/metadata/49126/art/1784188852'));
+
+  // The value round-trips through the browser before coming back to the poster
+  // route, so anything that would widen it beyond one Plex image must be
+  // refused — traversal, absolute URLs, and query smuggling in particular.
+  for (const bad of [
+    '/library/metadata/1/thumb/1/../../../etc/passwd',
+    'http://evil.example/pwn.png',
+    '//evil.example/pwn.png',
+    '/library/metadata/1/thumb/1&cmd=get_settings',
+    '/library/sections/1/all',
+    '/library/metadata/abc/thumb/1',
+    '',
+  ]) {
+    assert.equal(tautulli.isPlexImagePath(bad), false, bad);
+  }
+});
+
+test('an episode posts the show poster; a movie its own', () => {
+  const episode = tautulli.toStream({
+    media_type: 'episode',
+    grandparent_thumb: '/library/metadata/49126/thumb/1784188852',
+    thumb: '/library/metadata/130248/thumb/1785326051',
+  });
+  // The episode's own thumb is the still frame; the design's tile wants the
+  // show's poster.
+  assert.equal(episode.poster, '/api/poster?img=%2Flibrary%2Fmetadata%2F49126%2Fthumb%2F1784188852');
+
+  const movie = tautulli.toStream({
+    media_type: 'movie',
+    thumb: '/library/metadata/130222/thumb/1785273308',
+  });
+  assert.equal(movie.poster, '/api/poster?img=%2Flibrary%2Fmetadata%2F130222%2Fthumb%2F1785273308');
+});
+
+test('a missing or unusable thumb yields no poster rather than a broken URL', () => {
+  assert.equal(tautulli.toStream({ media_type: 'movie' }).poster, null);
+  assert.equal(
+    tautulli.toStream({ media_type: 'movie', thumb: 'http://evil.example/x.png' }).poster,
+    null,
+  );
+  // An episode with no show poster falls back to the monogram, not to its still.
+  assert.equal(tautulli.toStream({ media_type: 'episode' }).poster, null);
+});
+
 test('progress percent is clamped to 0-100', () => {
   assert.equal(tautulli.toStream({ progress_percent: '150' }).percent, 100);
   assert.equal(tautulli.toStream({ progress_percent: '-10' }).percent, 0);

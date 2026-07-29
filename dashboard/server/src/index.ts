@@ -8,7 +8,7 @@ import fastifyStatic from '@fastify/static';
 import { config } from './config.js';
 import { getHealth } from './sources/docker.js';
 import { getMetrics } from './sources/prometheus.js';
-import { getStreams } from './sources/tautulli.js';
+import { getStreams, getPoster } from './sources/tautulli.js';
 import { getDownloads, getVpn } from './sources/transmission.js';
 import { getRequests } from './sources/seerr.js';
 import { getUpcoming } from './sources/upcoming.js';
@@ -55,6 +55,30 @@ app.get('/api/requests', async () => getRequests());
 app.get('/api/upcoming', async () => getUpcoming());
 app.get('/api/activity', async () => getActivity());
 app.get('/api/vpn', async () => getVpn());
+
+/**
+ * Poster artwork, proxied from Plex via Tautulli.
+ *
+ * The browser can't call Tautulli itself — it may have no route to it, and the
+ * API key must not leave the server — so posters come through here. `img` is
+ * re-validated against Plex's metadata path shape inside `getPoster` even
+ * though this server produced it, since it round-trips through the client.
+ *
+ * Any failure is a 404 rather than a 5xx: the poster tile falls back to its
+ * monogram, which is the same thing it renders before the image loads.
+ */
+app.get<{ Querystring: { img?: string } }>('/api/poster', async (request, reply) => {
+  const img = request.query.img;
+  const image = img ? await getPoster(img) : null;
+  if (!image) return reply.code(404).send({ error: 'no poster' });
+
+  // The timestamp in a Plex image path changes whenever the artwork does, so
+  // any given URL is safe to cache hard.
+  return reply
+    .header('content-type', image.contentType)
+    .header('cache-control', 'public, max-age=86400')
+    .send(image.body);
+});
 
 /**
  * Integration status for the Setup panel — what's live, what's still waiting on

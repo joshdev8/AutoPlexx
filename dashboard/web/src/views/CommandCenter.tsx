@@ -11,6 +11,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { Panel, PanelBody } from '../components/Panel';
+import { Poster } from '../components/Poster';
 import { usePolled } from '../hooks/usePolled';
 import {
   MODE_HUE,
@@ -206,24 +207,7 @@ function StreamRow({ stream }: { stream: Stream }) {
         background: 'var(--color-bg)',
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          width: 44,
-          height: 64,
-          flex: 'none',
-          borderRadius: 'var(--radius-sm)',
-          background:
-            'repeating-linear-gradient(135deg, var(--color-neutral-800) 0 7px, var(--color-surface) 7px 14px)',
-          display: 'flex',
-          alignItems: 'flex-end',
-          padding: 4,
-          fontSize: 8,
-          color: 'var(--color-neutral-500)',
-        }}
-      >
-        {stream.mono}
-      </div>
+      <Poster src={stream.poster} mono={stream.mono} width={44} height={64} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <span

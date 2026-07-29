@@ -85,6 +85,8 @@ export interface Stream {
   title: string;
   meta: string;
   mono: string;
+  /** Dashboard-relative poster URL, or null when there's no artwork to show. */
+  poster: string | null;
   user: string;
   quality: string;
   mode: StreamMode;
