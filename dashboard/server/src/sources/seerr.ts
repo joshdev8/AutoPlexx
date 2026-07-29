@@ -190,4 +190,4 @@ export const getRequests = memoize<Result<RequestsPayload>>(async () => {
   return safely(load);
 }, config.ttl.requests);
 
-export const __test = { relative, statusOf, pendingCount };
+export const __test = { relative, statusOf, pendingCount, describe };

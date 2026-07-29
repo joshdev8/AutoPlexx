@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { HUE_VAR, type Hue } from '../types';
 
 /**
@@ -36,26 +37,14 @@ export function ServiceIcon({ id, mono, hue, size = 24 }: Props) {
   const logo = id ? BY_ID[id] : undefined;
   const radius = size >= 36 ? 'var(--radius-md)' : 'var(--radius-sm)';
 
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt=""
-        aria-hidden="true"
-        style={{
-          width: size,
-          height: size,
-          flex: 'none',
-          borderRadius: radius,
-          // These are square logos that carry their own padding; `contain`
-          // keeps a wide wordmark from being cropped into nonsense.
-          objectFit: 'contain',
-        }}
-      />
-    );
-  }
+  // The asset is in the bundle, but fetching it is still a network request
+  // that can be slow or fail — a dropped connection, a stale service worker,
+  // a build/asset mismatch. The monogram stays mounted underneath until the
+  // image actually loads, rather than leaving a blank tile in the meantime.
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  return (
+  const monogram = (
     <span
       aria-hidden="true"
       style={{
@@ -74,6 +63,33 @@ export function ServiceIcon({ id, mono, hue, size = 24 }: Props) {
       }}
     >
       {mono}
+    </span>
+  );
+
+  if (!logo || failed) return monogram;
+
+  return (
+    <span aria-hidden="true" style={{ position: 'relative', width: size, height: size, flex: 'none' }}>
+      {/* Underneath until `onLoad` fires, so a slow or failed fetch never
+          leaves an empty tile. */}
+      {!loaded && monogram}
+      <img
+        src={logo}
+        alt=""
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: size,
+          height: size,
+          borderRadius: radius,
+          // Square artwork with its own padding; `contain` keeps a wide
+          // wordmark from being cropped into nonsense.
+          objectFit: 'contain',
+          visibility: loaded ? 'visible' : 'hidden',
+        }}
+      />
     </span>
   );
 }

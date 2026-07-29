@@ -278,6 +278,56 @@ test('a failed or shapeless pending count falls back to the visible rows', async
   }
 });
 
+test('a request describes itself with its title and poster from Seerr detail data', async () => {
+  const realFetch = globalThis.fetch;
+
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({ title: 'Ransom Canyon', posterPath: '/u4YZhMms48mgP756hniUcw6PQPU.jpg' }),
+      { headers: { 'content-type': 'application/json' } },
+    )) as typeof fetch;
+  try {
+    const described = await seerr.describe({ type: 'tv', media: { tmdbId: 504 } }, 'key');
+    assert.equal(described.title, 'Ransom Canyon');
+    assert.equal(described.poster, '/api/poster?src=tmdb&ref=%2Fu4YZhMms48mgP756hniUcw6PQPU.jpg');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('a request with no tmdbId yet describes as unknown, without a fetch', async () => {
+  const realFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = (async () => {
+    called = true;
+    throw new Error('should not be called');
+  }) as typeof fetch;
+  try {
+    const described = await seerr.describe({ type: 'movie', media: {} }, 'key');
+    assert.equal(described.title, 'Unknown title');
+    assert.equal(described.poster, null);
+    // A request the media server hasn't matched yet has no id to look up —
+    // this must short-circuit rather than making a doomed request.
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('a failed detail lookup describes as unknown rather than dropping the row', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new Error('connection refused');
+  }) as typeof fetch;
+  try {
+    const described = await seerr.describe({ type: 'movie', media: { tmdbId: 27205 } }, 'key');
+    assert.equal(described.title, 'Unknown title');
+    assert.equal(described.poster, null);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 // ---- Sonarr calendar -------------------------------------------------------
 
 test('an episode with a file is downloaded regardless of air date', () => {
