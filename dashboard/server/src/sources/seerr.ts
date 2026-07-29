@@ -113,7 +113,11 @@ async function pendingCount(apiKey: string, fallback: number): Promise<number> {
       `${config.upstream.seerr}/api/v1/request?filter=pending&take=1&skip=0`,
       { 'X-Api-Key': apiKey },
     );
-    return page.pageInfo?.results ?? fallback;
+    // `getJson` types the body but can't vouch for it, so a malformed count —
+    // a string, a negative, a NaN — falls back rather than reaching the panel.
+    const results = page.pageInfo?.results;
+    if (typeof results !== 'number' || !Number.isFinite(results) || results < 0) return fallback;
+    return results;
   } catch {
     // The list already loaded successfully; a failed count shouldn't cost the
     // panel its rows, so fall back to what the visible page can prove.
