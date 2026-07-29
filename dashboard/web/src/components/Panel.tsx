@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Info } from '@phosphor-icons/react';
+import { useRef, type ReactNode } from 'react';
+import { Info, WarningCircle } from '@phosphor-icons/react';
 
 import type { Result } from '../types';
 
@@ -69,6 +69,58 @@ export function PanelEmpty({ result }: { result: { reason: string; hint?: string
   );
 }
 
+/**
+ * Shown above a panel's content when the newest response was unavailable but an
+ * earlier one wasn't.
+ *
+ * An upstream declining once is not a reason to throw away data that is seconds
+ * old — but it is a reason to say so, because silently showing stale numbers is
+ * worse than showing none. Carries the same reason and hint `PanelEmpty` would,
+ * so the fix stays discoverable without the panel going blank.
+ */
+export function PanelStale({ result }: { result: { reason: string; hint?: string } }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 'var(--space-2)',
+        alignItems: 'flex-start',
+        padding: 'var(--space-2) var(--space-3)',
+        borderRadius: 'var(--radius-sm)',
+        background: 'color-mix(in srgb, var(--ap-amber) 12%, transparent)',
+      }}
+    >
+      <WarningCircle
+        size={14}
+        color="var(--ap-amber)"
+        weight="regular"
+        style={{ flex: 'none', marginTop: 2 }}
+      />
+      <div style={{ minWidth: 0, fontSize: 12 }}>
+        <span>Showing last known data — {result.reason}</span>
+        {result.hint && (
+          <div className="text-muted" style={{ marginTop: 2 }}>
+            {result.hint}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Remembers the most recent payload that was actually available.
+ *
+ * Assigning during render is safe here because it's derived purely from props
+ * and is idempotent — the same `data` always produces the same assignment, so a
+ * double render under StrictMode can't skew it.
+ */
+function useLastAvailable<T extends object>(data: Result<T> | null): T | null {
+  const lastAvailable = useRef<T | null>(null);
+  if (data?.available) lastAvailable.current = data;
+  return lastAvailable.current;
+}
+
 /** Placeholder while a panel's first request is in flight. */
 export function PanelLoading() {
   return (
@@ -98,6 +150,20 @@ export function PanelBody<T extends object>({
   empty?: string;
   children: (value: T) => ReactNode;
 }) {
+  const lastAvailable = useLastAvailable(data);
+
+  const render = (value: T) => {
+    const rendered = children(value);
+    if (empty && Array.isArray(rendered) && rendered.length === 0) {
+      return (
+        <span className="text-muted" style={{ fontSize: 13 }}>
+          {empty}
+        </span>
+      );
+    }
+    return <>{rendered}</>;
+  };
+
   if (loading && !data) return <PanelLoading />;
   // A transport failure leaves `data` null with `loading` false. Reporting that
   // as "No response yet" would imply the request is still coming.
@@ -112,15 +178,24 @@ export function PanelBody<T extends object>({
       />
     );
   }
-  if (!data.available) return <PanelEmpty result={data} />;
 
-  const rendered = children(data);
-  if (empty && Array.isArray(rendered) && rendered.length === 0) {
-    return (
-      <span className="text-muted" style={{ fontSize: 13 }}>
-        {empty}
-      </span>
-    );
+  if (!data.available) {
+    // An upstream blip arrives as a *successful* response carrying
+    // `available: false`, so `usePolled` can't tell it from real data and
+    // replaces the last good payload with it. Without this branch a single
+    // failed poll blanks the panel until the server-side TTL lapses — up to a
+    // minute for the calendar — which is exactly what "a failed refresh keeps
+    // the last good data on screen" is supposed to prevent.
+    if (lastAvailable) {
+      return (
+        <>
+          <PanelStale result={data} />
+          {render(lastAvailable)}
+        </>
+      );
+    }
+    return <PanelEmpty result={data} />;
   }
-  return <>{rendered}</>;
+
+  return render(data);
 }
