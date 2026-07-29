@@ -8,7 +8,8 @@ import fastifyStatic from '@fastify/static';
 import { config } from './config.js';
 import { getHealth } from './sources/docker.js';
 import { getMetrics } from './sources/prometheus.js';
-import { getStreams, getPoster } from './sources/tautulli.js';
+import { getStreams } from './sources/tautulli.js';
+import { getPoster } from './sources/posters.js';
 import { getDownloads, getVpn } from './sources/transmission.js';
 import { getRequests } from './sources/seerr.js';
 import { getUpcoming } from './sources/upcoming.js';
@@ -57,23 +58,25 @@ app.get('/api/activity', async () => getActivity());
 app.get('/api/vpn', async () => getVpn());
 
 /**
- * Poster artwork, proxied from Plex via Tautulli.
+ * Poster artwork, proxied from whichever service holds it — Plex via Tautulli,
+ * a Servarr's own cached cover, or TMDb for requests nothing has picked up yet.
  *
- * The browser can't call Tautulli itself — it may have no route to it, and the
- * API key must not leave the server — so posters come through here. `img` is
- * re-validated against Plex's metadata path shape inside `getPoster` even
- * though this server produced it, since it round-trips through the client.
+ * The browser can't fetch any of these itself: three sit behind API keys that
+ * must not leave the server, and the fourth is off-box. `src` and `ref` are
+ * re-validated inside `getPoster` even though this server produced them, since
+ * they round-trip through the client.
  *
- * Any failure is a 404 rather than a 5xx: the poster tile falls back to its
- * monogram, which is the same thing it renders before the image loads.
+ * Any failure is a 404 rather than a 5xx: the tile falls back to its monogram,
+ * which is the same thing it renders before an image loads.
  */
-app.get<{ Querystring: { img?: string } }>('/api/poster', async (request, reply) => {
-  const img = request.query.img;
-  const image = img ? await getPoster(img) : null;
+app.get<{ Querystring: { src?: string; ref?: string } }>('/api/poster', async (request, reply) => {
+  const { src, ref } = request.query;
+  const image = src && ref ? await getPoster(src, ref) : null;
   if (!image) return reply.code(404).send({ error: 'no poster' });
 
-  // The timestamp in a Plex image path changes whenever the artwork does, so
-  // any given URL is safe to cache hard.
+  // Every ref identifies one immutable rendition — Plex and Servarr paths carry
+  // a version number, TMDb filenames are content-addressed — so any given URL
+  // is safe to cache hard.
   return reply
     .header('content-type', image.contentType)
     .header('cache-control', 'public, max-age=86400')

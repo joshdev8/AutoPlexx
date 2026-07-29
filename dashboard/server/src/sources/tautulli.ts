@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { credentialFor } from '../discovery.js';
 import { getJson, safely, unavailable, type Result } from '../http.js';
+import { plexPoster } from './posters.js';
 
 /** Now Playing, from Tautulli's `get_activity` command. */
 
@@ -100,27 +101,6 @@ function monogram(title: string): string {
     .toUpperCase();
 }
 
-/**
- * The shape Plex uses for image paths. Anything else is refused.
- *
- * This is the whole of the trust boundary for `/api/poster`: the value arrives
- * from Tautulli, round-trips through the browser, and is then handed back to
- * Tautulli, so it has to be re-checked on the way in rather than trusted
- * because we emitted it. Constraining it to a literal metadata path keeps the
- * route from being usable as a general-purpose proxy.
- */
-const PLEX_IMAGE_PATH = /^\/library\/metadata\/\d+\/(?:thumb|art|poster)\/\d+$/;
-
-export function isPlexImagePath(value: string): boolean {
-  return PLEX_IMAGE_PATH.test(value);
-}
-
-/** Wraps a Plex image path as a URL this server will proxy, or null if unusable. */
-function posterUrl(path: string | undefined): string | null {
-  if (!path || !isPlexImagePath(path)) return null;
-  return `/api/poster?img=${encodeURIComponent(path)}`;
-}
-
 function toStream(session: TautulliSession): Stream {
   const isEpisode = session.media_type === 'episode';
   const title = (isEpisode ? session.grandparent_title : session.title) ?? 'Unknown';
@@ -141,7 +121,7 @@ function toStream(session: TautulliSession): Stream {
     mono: monogram(title),
     // An episode's own thumb is the episode still; the show's poster is what
     // the design's poster tile wants.
-    poster: posterUrl(isEpisode ? session.grandparent_thumb : session.thumb),
+    poster: plexPoster(isEpisode ? session.grandparent_thumb : session.thumb),
     user: session.friendly_name || session.user || 'Unknown',
     quality: session.video_full_resolution || session.quality_profile || '',
     mode: mode(session.transcode_decision),
@@ -192,46 +172,4 @@ export const getStreams = memoize<Result<StreamsPayload>>(async () => {
   return safely(load);
 }, config.ttl.streams);
 
-export interface PosterImage {
-  body: Buffer;
-  contentType: string;
-}
-
-/**
- * Fetches one poster through Tautulli's `pms_image_proxy`, which reads it from
- * Plex — so artwork never requires outbound internet, matching the rest of the
- * stack's self-hosted assumption.
- *
- * Returns null rather than throwing for every failure mode, because the caller
- * turns that into a 404 and the UI falls back to the monogram tile. A missing
- * poster must never be louder than that.
- */
-export async function getPoster(path: string): Promise<PosterImage | null> {
-  if (!isPlexImagePath(path)) return null;
-
-  const credential = await credentialFor('tautulli');
-  if (credential.state !== 'live' || !credential.apiKey) return null;
-
-  const url =
-    `${config.upstream.tautulli}/api/v2` +
-    `?apikey=${encodeURIComponent(credential.apiKey)}` +
-    `&cmd=pms_image_proxy` +
-    `&img=${encodeURIComponent(path)}` +
-    `&width=300&height=450&fallback=poster`;
-
-  try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(config.upstreamTimeoutMs) });
-    if (!response.ok) return null;
-
-    const contentType = response.headers.get('content-type') ?? '';
-    // Tautulli answers a bad key with a 200 JSON envelope, so the content type
-    // is the only thing that distinguishes an image from an error.
-    if (!contentType.startsWith('image/')) return null;
-
-    return { body: Buffer.from(await response.arrayBuffer()), contentType };
-  } catch {
-    return null;
-  }
-}
-
-export const __test = { duration, mode, monogram, toStream, posterUrl, isPlexImagePath };
+export const __test = { duration, mode, monogram, toStream };

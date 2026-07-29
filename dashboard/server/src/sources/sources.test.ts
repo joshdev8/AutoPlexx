@@ -7,6 +7,7 @@ import { __test as seerr } from './seerr.js';
 import { __test as arr } from './arr.js';
 import { __test as prometheus } from './prometheus.js';
 import { __test as activity } from './activity.js';
+import { __test as posters } from './posters.js';
 
 // ---- Tautulli --------------------------------------------------------------
 
@@ -52,24 +53,52 @@ test('episode sessions render as SxxEyy, movies as a year', () => {
   assert.equal(movie.meta, '2024');
 });
 
-test('only Plex metadata image paths are accepted', () => {
-  assert.ok(tautulli.isPlexImagePath('/library/metadata/130222/thumb/1785273308'));
-  assert.ok(tautulli.isPlexImagePath('/library/metadata/49126/art/1784188852'));
+test('each poster source accepts only its own reference shape', () => {
+  assert.ok(posters.isValidRef('plex', '/library/metadata/130222/thumb/1785273308'));
+  assert.ok(posters.isValidRef('plex', '/library/metadata/49126/art/1784188852'));
+  assert.ok(posters.isValidRef('sonarr', '1034'));
+  assert.ok(posters.isValidRef('radarr', '1'));
+  assert.ok(posters.isValidRef('tmdb', '/u4YZhMms48mgP756hniUcw6PQPU.jpg'));
 
-  // The value round-trips through the browser before coming back to the poster
-  // route, so anything that would widen it beyond one Plex image must be
-  // refused — traversal, absolute URLs, and query smuggling in particular.
-  for (const bad of [
-    '/library/metadata/1/thumb/1/../../../etc/passwd',
-    'http://evil.example/pwn.png',
-    '//evil.example/pwn.png',
-    '/library/metadata/1/thumb/1&cmd=get_settings',
-    '/library/sections/1/all',
-    '/library/metadata/abc/thumb/1',
-    '',
-  ]) {
-    assert.equal(tautulli.isPlexImagePath(bad), false, bad);
+  // A ref round-trips through the browser before coming back to the poster
+  // route, so anything that would widen it beyond one image must be refused —
+  // traversal, absolute URLs and query smuggling in particular. Refs must not
+  // be interchangeable between sources either: a Plex path accepted as a TMDb
+  // one would reach a different host entirely.
+  const bad: [string, string][] = [
+    ['plex', '/library/metadata/1/thumb/1/../../../etc/passwd'],
+    ['plex', 'http://evil.example/pwn.png'],
+    ['plex', '//evil.example/pwn.png'],
+    ['plex', '/library/metadata/1/thumb/1&cmd=get_settings'],
+    ['plex', '/library/sections/1/all'],
+    ['plex', '/library/metadata/abc/thumb/1'],
+    ['plex', '/u4YZhMms48mgP756hniUcw6PQPU.jpg'],
+    ['tmdb', '/library/metadata/1/thumb/1'],
+    ['tmdb', '/../../etc/passwd.jpg'],
+    ['tmdb', '/nested/path/poster.jpg'],
+    ['tmdb', 'https://evil.example/x.jpg'],
+    ['sonarr', '0'],
+    ['sonarr', '-1'],
+    ['sonarr', '1;rm -rf /'],
+    ['sonarr', '../../etc/passwd'],
+    ['radarr', '1.5'],
+    ['nope', '1'],
+    ['plex', ''],
+  ];
+  for (const [source, ref] of bad) {
+    assert.equal(posters.isValidRef(source as never, ref), false, `${source}: ${ref}`);
   }
+});
+
+test('a poster URL names its source and escapes its reference', () => {
+  assert.equal(
+    posters.url('plex', '/library/metadata/34279/thumb/1785309193'),
+    '/api/poster?src=plex&ref=%2Flibrary%2Fmetadata%2F34279%2Fthumb%2F1785309193',
+  );
+  assert.equal(posters.url('sonarr', '1034'), '/api/poster?src=sonarr&ref=1034');
+  // An invalid ref yields no URL at all rather than one that 404s on use.
+  assert.equal(posters.url('tmdb', '/nested/path.jpg'), null);
+  assert.equal(posters.url('plex', undefined), null);
 });
 
 test('an episode posts the show poster; a movie its own', () => {
@@ -80,13 +109,19 @@ test('an episode posts the show poster; a movie its own', () => {
   });
   // The episode's own thumb is the still frame; the design's tile wants the
   // show's poster.
-  assert.equal(episode.poster, '/api/poster?img=%2Flibrary%2Fmetadata%2F49126%2Fthumb%2F1784188852');
+  assert.equal(
+    episode.poster,
+    '/api/poster?src=plex&ref=%2Flibrary%2Fmetadata%2F49126%2Fthumb%2F1784188852',
+  );
 
   const movie = tautulli.toStream({
     media_type: 'movie',
     thumb: '/library/metadata/130222/thumb/1785273308',
   });
-  assert.equal(movie.poster, '/api/poster?img=%2Flibrary%2Fmetadata%2F130222%2Fthumb%2F1785273308');
+  assert.equal(
+    movie.poster,
+    '/api/poster?src=plex&ref=%2Flibrary%2Fmetadata%2F130222%2Fthumb%2F1785273308',
+  );
 });
 
 test('a missing or unusable thumb yields no poster rather than a broken URL', () => {
@@ -138,11 +173,31 @@ test('the failure hint matches the failure, not a generic one', () => {
 });
 
 test('attribution falls back to OTHER rather than guessing', () => {
-  const sonarr = new Set(['Show.S01E01.1080p']);
-  const radarr = new Set(['Movie.2024.2160p']);
-  assert.equal(transmission.attribute('Show.S01E01.1080p', sonarr, radarr), 'SONARR');
-  assert.equal(transmission.attribute('Movie.2024.2160p', sonarr, radarr), 'RADARR');
-  assert.equal(transmission.attribute('Something.Else', sonarr, radarr), 'OTHER');
+  const index = transmission.indexQueues(
+    [{ title: 'Show.S01E01.1080p', seriesId: 7 }],
+    [{ title: 'Movie.2024.2160p', movieId: 9 }],
+  );
+
+  const show = transmission.attribute('Show.S01E01.1080p', index);
+  assert.equal(show.source, 'SONARR');
+  assert.equal(show.poster, '/api/poster?src=sonarr&ref=7');
+
+  const movie = transmission.attribute('Movie.2024.2160p', index);
+  assert.equal(movie.source, 'RADARR');
+  assert.equal(movie.poster, '/api/poster?src=radarr&ref=9');
+
+  // A torrent no *arr tracks keeps its placeholder rather than borrowing art
+  // from a near-miss — a wrong poster is worse than none.
+  const unknown = transmission.attribute('Something.Else', index);
+  assert.equal(unknown.source, 'OTHER');
+  assert.equal(unknown.poster, null);
+});
+
+test('a queue record without an id still attributes, just without art', () => {
+  const index = transmission.indexQueues([{ title: 'Show.S01E01.1080p' }], []);
+  const show = transmission.attribute('Show.S01E01.1080p', index);
+  assert.equal(show.source, 'SONARR');
+  assert.equal(show.poster, null);
 });
 
 // ---- Seerr -----------------------------------------------------------------
