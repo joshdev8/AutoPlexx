@@ -151,6 +151,20 @@ test('a failed or shapeless pending count falls back to the visible rows', async
     globalThis.fetch = realFetch;
   }
 
+  for (const results of ['23', -1, Number.NaN, null]) {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ pageInfo: { results } }), {
+        headers: { 'content-type': 'application/json' },
+      })) as typeof fetch;
+    try {
+      // A 200 carrying a count that isn't a count at all — the body is typed,
+      // not validated, so the value has to be checked before the panel sees it.
+      assert.equal(await seerr.pendingCount('key', 3), 3, `results: ${String(results)}`);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  }
+
   globalThis.fetch = (async () => {
     throw new Error('connection refused');
   }) as typeof fetch;
