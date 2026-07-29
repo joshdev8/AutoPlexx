@@ -101,6 +101,8 @@ export interface Stream {
 export interface Download {
   label: string;
   source: 'SONARR' | 'RADARR' | 'OTHER';
+  /** Dashboard-relative poster URL, or null when there's no artwork to show. */
+  poster: string | null;
   percent: number;
   speed: string;
   eta: string;
@@ -108,6 +110,7 @@ export interface Download {
 
 export interface RequestItem {
   title: string;
+  poster: string | null;
   kind: 'Movie' | 'Series';
   user: string;
   when: string;
@@ -116,6 +119,7 @@ export interface RequestItem {
 
 export interface UpcomingItem {
   seriesTitle: string;
+  poster: string | null;
   code: string;
   title: string;
   network: string;

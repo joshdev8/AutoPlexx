@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { credentialFor } from '../discovery.js';
 import { getJson, safely, unavailable, type Result } from '../http.js';
+import { tmdbPoster } from './posters.js';
 
 /** Content requests, from Seerr. */
 
@@ -33,6 +34,8 @@ interface SeerrPage {
 
 export interface RequestItem {
   title: string;
+  /** Dashboard-relative poster URL, or null when there's nothing to show. */
+  poster: string | null;
   kind: 'Movie' | 'Series';
   user: string;
   when: string;
@@ -42,6 +45,8 @@ export interface RequestItem {
 interface SeerrMediaDetails {
   title?: string;
   name?: string;
+  /** TMDb path, e.g. `/u4YZhMms48mgP756hniUcw6PQPU.jpg`. */
+  posterPath?: string;
 }
 
 export interface RequestsPayload {
@@ -77,12 +82,26 @@ function statusOf(request: SeerrRequest): RequestItem['status'] {
   return STATUS[request.status ?? 0] ?? 'Pending';
 }
 
-async function titleFor(
-  request: SeerrRequest,
-  apiKey: string,
-): Promise<string> {
+interface Described {
+  title: string;
+  poster: string | null;
+}
+
+const UNKNOWN: Described = { title: 'Unknown title', poster: null };
+
+/**
+ * Title and artwork for a request, from the one detail call.
+ *
+ * The poster comes back on the same response as the title, so artwork costs no
+ * extra request. Unlike every other source here the path resolves against
+ * TMDb rather than something in the stack — Seerr keeps no local copy, and its
+ * `/imageproxy/` is not present on every build. A request no *arr has picked up
+ * yet has no other source of art, so this is the trade; it degrades to the
+ * placeholder when there's no route out.
+ */
+async function describe(request: SeerrRequest, apiKey: string): Promise<Described> {
   const tmdbId = request.media?.tmdbId;
-  if (!tmdbId) return 'Unknown title';
+  if (!tmdbId) return UNKNOWN;
 
   const kind = request.type === 'tv' ? 'tv' : 'movie';
   try {
@@ -90,11 +109,14 @@ async function titleFor(
       `${config.upstream.seerr}/api/v1/${kind}/${tmdbId}`,
       { 'X-Api-Key': apiKey },
     );
-    return details.title || details.name || 'Unknown title';
+    return {
+      title: details.title || details.name || 'Unknown title',
+      poster: tmdbPoster(details.posterPath),
+    };
   } catch {
-    // Title lookup goes out to TMDb via Seerr and can fail independently of the
-    // request list; a missing title shouldn't drop the row.
-    return 'Unknown title';
+    // Detail lookup goes out to TMDb via Seerr and can fail independently of
+    // the request list; a missing title shouldn't drop the row.
+    return UNKNOWN;
   }
 }
 
@@ -139,7 +161,7 @@ async function load(): Promise<RequestsPayload> {
 
   const requests = await Promise.all(
     results.map(async (request): Promise<RequestItem> => ({
-      title: await titleFor(request, credential.apiKey!),
+      ...(await describe(request, credential.apiKey!)),
       kind: request.type === 'tv' ? 'Series' : 'Movie',
       user:
         request.requestedBy?.displayName ||

@@ -10,12 +10,13 @@ import { useState } from 'react';
  */
 export function Poster({
   src,
-  mono,
+  mono = '',
   width,
   height,
 }: {
   src: string | null;
-  mono: string;
+  /** Shown on the placeholder. Omitted where the design has no monogram. */
+  mono?: string;
   width: number;
   height: number;
 }) {

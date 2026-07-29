@@ -58,6 +58,13 @@ export const config = {
     transmission: process.env.TRANSMISSION_URL ?? 'http://transmission:9091',
   },
 
+  /**
+   * TMDb's image CDN, used only for request posters no *arr holds yet. This is
+   * the single outbound dependency in the app; pointing it at an unreachable
+   * host simply falls those tiles back to their placeholder.
+   */
+  tmdbImageBase: process.env.TMDB_IMAGE_BASE ?? 'https://image.tmdb.org/t/p',
+
   /** Optional Transmission RPC auth, mirroring the stack's existing .env vars. */
   transmissionAuth: {
     username: process.env.TRANSMISSION_RPC_USERNAME ?? '',

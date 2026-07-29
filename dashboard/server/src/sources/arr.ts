@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { credentialFor, type SourceId } from '../discovery.js';
 import { getJson } from '../http.js';
+import { arrPoster } from './posters.js';
 
 /**
  * Shared client for the Servarr v3 API. Sonarr and Radarr differ in their
@@ -31,6 +32,10 @@ export async function arrRequest<T>(
 
 export interface QueueRecord {
   title?: string;
+  /** Set on Sonarr records; the key to that series' cached cover. */
+  seriesId?: number;
+  /** Set on Radarr records; the key to that movie's cached cover. */
+  movieId?: number;
   status?: string;
   size?: number;
   sizeleft?: number;
@@ -41,18 +46,41 @@ export interface QueueRecord {
 
 interface QueuePage {
   records?: QueueRecord[];
+  totalRecords?: number;
 }
 
 /**
- * Current queue. Asked for a generous page size because the dashboard matches
- * these against Transmission's torrent list to label each download's source.
+ * Current queue, in full.
+ *
+ * Every record is matched against Transmission's torrent list to label each
+ * download and find its artwork, so a partial queue silently produces wrong
+ * answers rather than missing ones — an unmatched torrent is labelled OTHER,
+ * which is indistinguishable from one no *arr is tracking. A long-running
+ * install accumulates hundreds of stalled entries (this was found against a
+ * 636-record queue), so paging to the end is the only way the match can be
+ * trusted.
  */
 export async function queue(arr: ArrId): Promise<QueueRecord[]> {
-  const page = await arrRequest<QueuePage>(arr, 'queue', {
-    pageSize: '100',
-    includeUnknownMovieItems: 'false',
-  });
-  return page.records ?? [];
+  const pageSize = 250;
+  const records: QueueRecord[] = [];
+
+  // Bounded rather than `while (true)`: a queue that never reports a total, or
+  // reports a wrong one, must not spin this loop forever.
+  for (let page = 1; page <= 20; page += 1) {
+    const body = await arrRequest<QueuePage>(arr, 'queue', {
+      page: String(page),
+      pageSize: String(pageSize),
+      includeUnknownMovieItems: 'false',
+    });
+
+    const batch = body.records ?? [];
+    records.push(...batch);
+
+    if (batch.length < pageSize) break;
+    if (body.totalRecords !== undefined && records.length >= body.totalRecords) break;
+  }
+
+  return records;
 }
 
 export interface HistoryRecord {
@@ -78,6 +106,8 @@ export async function history(arr: ArrId, pageSize = 20): Promise<HistoryRecord[
 
 export interface CalendarEpisode {
   seriesTitle: string;
+  /** Dashboard-relative poster URL for the series, or null if unavailable. */
+  poster: string | null;
   code: string;
   title: string;
   network: string;
@@ -92,6 +122,7 @@ interface SonarrCalendarItem {
   episodeNumber?: number;
   airDateUtc?: string;
   hasFile?: boolean;
+  seriesId?: number;
   series?: { title?: string; network?: string };
 }
 
@@ -114,6 +145,7 @@ export async function calendar(start: Date, end: Date): Promise<CalendarEpisode[
   const now = new Date();
   return items.map((item) => ({
     seriesTitle: item.series?.title ?? 'Unknown',
+    poster: arrPoster('sonarr', item.seriesId),
     code: `S${String(item.seasonNumber ?? 0).padStart(2, '0')}E${String(item.episodeNumber ?? 0).padStart(2, '0')}`,
     title: item.title ?? '',
     network: item.series?.network ?? '',

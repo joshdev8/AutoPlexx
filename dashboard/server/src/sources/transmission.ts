@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { safely, type Result } from '../http.js';
 import { queue, type QueueRecord } from './arr.js';
+import { arrPoster } from './posters.js';
 
 /**
  * Active downloads, from Transmission's RPC endpoint.
@@ -34,6 +35,8 @@ export interface Download {
   label: string;
   /** Which *arr grabbed it, when it can be matched. */
   source: 'SONARR' | 'RADARR' | 'OTHER';
+  /** That *arr's cached cover, or null when nothing matched. */
+  poster: string | null;
   /** 0-100 */
   percent: number;
   speed: string;
@@ -103,25 +106,46 @@ function formatEta(seconds: number | undefined): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
+/** What a queue match tells us about a torrent: who grabbed it, and its art. */
+interface Attribution {
+  source: Download['source'];
+  poster: string | null;
+}
+
+const UNATTRIBUTED: Attribution = { source: 'OTHER', poster: null };
+
 /**
- * Labels a torrent with the *arr that grabbed it.
+ * Labels a torrent with the *arr that grabbed it, and its artwork.
  *
  * The queues carry the release title, which is what Transmission names the
  * torrent, so an exact match works for the common case. Falls back to OTHER
- * rather than guessing — a wrong attribution is worse than none.
+ * rather than guessing — a wrong attribution is worse than none, and that
+ * applies to the poster just as much as the tag.
+ *
+ * A torrent no *arr is tracking — an old manual grab, or one whose queue entry
+ * has since been removed — matches nothing and keeps its placeholder. That is a
+ * correct answer, not a missing one.
  */
-function attribute(
-  name: string,
-  sonarrTitles: Set<string>,
-  radarrTitles: Set<string>,
-): Download['source'] {
-  if (sonarrTitles.has(name)) return 'SONARR';
-  if (radarrTitles.has(name)) return 'RADARR';
-  return 'OTHER';
+function attribute(name: string, index: Map<string, Attribution>): Attribution {
+  return index.get(name) ?? UNATTRIBUTED;
 }
 
-function titleSet(records: QueueRecord[]): Set<string> {
-  return new Set(records.map((r) => r.title).filter((t): t is string => Boolean(t)));
+/**
+ * Indexes both queues by release title. Sonarr is inserted first so that if the
+ * same title somehow appears in both, the series wins over the movie — the
+ * previous ordering, preserved.
+ */
+function indexQueues(sonarr: QueueRecord[], radarr: QueueRecord[]): Map<string, Attribution> {
+  const index = new Map<string, Attribution>();
+
+  for (const record of radarr) {
+    if (record.title) index.set(record.title, { source: 'RADARR', poster: arrPoster('radarr', record.movieId) });
+  }
+  for (const record of sonarr) {
+    if (record.title) index.set(record.title, { source: 'SONARR', poster: arrPoster('sonarr', record.seriesId) });
+  }
+
+  return index;
 }
 
 async function load(): Promise<DownloadsPayload> {
@@ -138,8 +162,7 @@ async function load(): Promise<DownloadsPayload> {
     queue('radarr').catch(() => [] as QueueRecord[]),
   ]);
 
-  const sonarrTitles = titleSet(sonarrQueue);
-  const radarrTitles = titleSet(radarrQueue);
+  const index = indexQueues(sonarrQueue, radarrQueue);
 
   const torrents = response.arguments?.torrents ?? [];
   // Status 4 is "downloading"; anything complete or seeding isn't interesting
@@ -149,9 +172,11 @@ async function load(): Promise<DownloadsPayload> {
   const downloads: Download[] = active
     .map((torrent) => {
       const name = torrent.name ?? 'Unknown';
+      const { source, poster } = attribute(name, index);
       return {
         label: name,
-        source: attribute(name, sonarrTitles, radarrTitles),
+        source,
+        poster,
         percent: Math.round((torrent.percentDone ?? 0) * 100),
         speed: formatSpeed(torrent.rateDownload ?? 0),
         eta: formatEta(torrent.eta),
@@ -215,4 +240,4 @@ export const getVpn = memoize<Result<VpnStatus>>(
   config.ttl.downloads,
 );
 
-export const __test = { formatSpeed, formatEta, attribute, hintFor };
+export const __test = { formatSpeed, formatEta, attribute, indexQueues, hintFor };

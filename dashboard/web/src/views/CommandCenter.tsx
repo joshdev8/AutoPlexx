@@ -259,7 +259,9 @@ function DownloadRow({ download }: { download: Download }) {
   // Near-complete downloads go green regardless of source, matching the design.
   const hue = download.percent > 90 ? 'var(--ap-green)' : SOURCE_HUE[download.source];
   return (
-    <div>
+    <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start' }}>
+      <Poster src={download.poster} width={34} height={50} />
+      <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 6 }}>
         <Tag hue={SOURCE_HUE[download.source]}>{download.source}</Tag>
         <span
@@ -286,6 +288,7 @@ function DownloadRow({ download }: { download: Download }) {
         </span>
         <span>ETA {download.eta}</span>
       </div>
+      </div>
     </div>
   );
 }
@@ -303,6 +306,7 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
         </div>
       </div>
       <div style={{ width: 2, alignSelf: 'stretch', borderRadius: 2, background: hue }} />
+      <Poster src={item.poster} width={32} height={46} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
@@ -327,17 +331,7 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
 function RequestRow({ request }: { request: RequestItem }) {
   return (
     <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-      <div
-        aria-hidden="true"
-        style={{
-          width: 34,
-          height: 50,
-          flex: 'none',
-          borderRadius: 'var(--radius-sm)',
-          background:
-            'repeating-linear-gradient(135deg, var(--color-neutral-800) 0 6px, var(--color-bg) 6px 12px)',
-        }}
-      />
+      <Poster src={request.poster} width={34} height={50} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
