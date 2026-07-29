@@ -80,7 +80,7 @@ Every variable has a working default — the app must start and be useful agains
    which handles the loading, unavailable and empty cases for you.
 
 The `hint` is the part that matters: it should name the one concrete step that
-fixes the problem. See `hintFor()` in `sources/transmission.ts` — an auth
+fixes the problem. See `hintFor()` in `server/src/sources/transmission.ts` — an auth
 failure and an unreachable host need different advice, and a generic hint sends
 people looking in the wrong place.
 

@@ -18,6 +18,14 @@
   --ap-cyan-dim: oklch(48% 0.09 220);
   --ap-violet: var(--color-accent-400);
   --ap-violet-dim: var(--color-accent-700);
+
+  /*
+   * The alert badge is the one place amber sits behind text rather than being
+   * used as a dot, border or bar, so it needs its own value: the light theme's
+   * --ap-amber carries only 3.4:1 against --color-bg, under the 4.5:1 AA asks
+   * for at 10px. Dark theme already clears it at 9.9:1 and reuses amber as-is.
+   */
+  --ap-badge: var(--ap-amber);
 }
 
 [data-theme='light'] {
@@ -29,6 +37,8 @@
   --ap-amber: oklch(62% 0.15 78);
   --ap-red: oklch(56% 0.19 22);
   --ap-cyan: oklch(58% 0.13 230);
+  /* 5.1:1 against --color-bg, where plain --ap-amber manages only 3.4:1. */
+  --ap-badge: oklch(52% 0.15 78);
 }
 
 @keyframes ap-fade {
@@ -107,20 +117,29 @@
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
-/* The unread count on the alert bell. */
+/*
+ * The unread count on the alert bell.
+ *
+ * nocturne's spacing scale is a layout scale — 2.8 / 5.6 / 8.4 / 11.2px — and
+ * none of its steps reach the 16px an icon-corner badge needs. So the size is
+ * stated once here and the offset, radius and line-height derive from it,
+ * rather than being four independent numbers that have to stay in agreement.
+ */
 .ap-badge {
+  --badge-size: 16px;
+
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: var(--ap-amber);
+  top: calc(var(--badge-size) / -4);
+  right: calc(var(--badge-size) / -4);
+  min-width: var(--badge-size);
+  height: var(--badge-size);
+  padding: 0 var(--space-1);
+  border-radius: calc(var(--badge-size) / 2);
+  background: var(--ap-badge);
   color: var(--color-bg);
   font-size: 10px;
   font-weight: 600;
-  line-height: 16px;
+  line-height: var(--badge-size);
   text-align: center;
 }
 
