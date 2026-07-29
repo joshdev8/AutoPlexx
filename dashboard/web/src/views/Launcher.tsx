@@ -49,7 +49,7 @@ function ServiceTile({ service }: { service: ServiceStatus }) {
   const body = (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        <ServiceIcon mono={service.mono} hue={service.hue} size={40} />
+        <ServiceIcon id={service.id} mono={service.mono} hue={service.hue} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, fontSize: 15 }}>
             {service.name}
