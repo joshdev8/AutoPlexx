@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Info, WarningCircle } from '@phosphor-icons/react';
 
 import type { Result } from '../types';
@@ -108,16 +108,12 @@ export function PanelStale({ result }: { result: { reason: string; hint?: string
   );
 }
 
-/**
- * Remembers the most recent payload that was actually available.
- *
- * Assigning during render is safe here because it's derived purely from props
- * and is idempotent — the same `data` always produces the same assignment, so a
- * double render under StrictMode can't skew it.
- */
+/** Remembers the most recent payload that was actually available. */
 function useLastAvailable<T extends object>(data: Result<T> | null): T | null {
   const lastAvailable = useRef<T | null>(null);
-  if (data?.available) lastAvailable.current = data;
+  useEffect(() => {
+    if (data?.available) lastAvailable.current = data;
+  }, [data]);
   return lastAvailable.current;
 }
 
