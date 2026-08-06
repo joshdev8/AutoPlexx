@@ -71,6 +71,15 @@ Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, 
 
 **Plex claim tokens expire in ~4 minutes.** `PLEX_CLAIM` must be set in `.env` immediately before `docker compose up -d` on first run. If the user reports a Plex auth issue on first boot, this is almost always why.
 
+**Jellyfin is an optional, commented-out swap for Plex.** `docker-compose.yml` carries a
+fully-formed but commented `jellyfin:` service (host network, port `8096`, no claim
+token) directly under `plex:`; the intended workflow is to comment out one and uncomment
+the other, per issue #56. The dashboard catalog (`services.ts`) already lists Jellyfin so
+its panel self-heals when enabled. Tautulli, Watchlistarr, Kometa, and Maintainerr are
+Plex-API-specific and do NOT work against Jellyfin — and since the dashboard's now-playing
+and poster panels read through Tautulli, those are Plex-bound too. Wiring Jellyfin-native
+companions is deliberately left as a follow-up.
+
 ## Kometa (plex-meta-manager) layout
 
 The mounted config directory is `plex-meta-manager/config/`. Its structure is referenced explicitly by `config.yml`:
