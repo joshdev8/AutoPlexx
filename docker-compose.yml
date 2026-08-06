@@ -16,6 +16,27 @@ services:
       - ${USERDIR}/plex/media:/media
     restart: unless-stopped
 
+  # ---- Optional: Jellyfin (Plex alternative) ----
+  # Jellyfin is a free, fully open-source media server with no paid tier. To use
+  # it INSTEAD of Plex: comment out the entire `plex:` service above, then
+  # uncomment the `jellyfin:` service below and run `docker compose up -d`.
+  # Jellyfin's web UI is on http://<host>:8096 and needs no claim token.
+  # Heads up: Tautulli, Watchlistarr, Kometa, and Maintainerr are Plex-only and
+  # will NOT work against Jellyfin — see the README "Using Jellyfin instead of
+  # Plex" section for the full compatibility list.
+  # jellyfin:
+  #   container_name: jellyfin
+  #   image: linuxserver/jellyfin
+  #   network_mode: "host"
+  #   environment:
+  #     - PUID=${PUID}
+  #     - PGID=${PGID}
+  #     - TZ=${TZ}
+  #   volumes:
+  #     - ${USERDIR}/jellyfin/config:/config
+  #     - ${USERDIR}/plex/media:/media
+  #   restart: unless-stopped
+
   # ============ MONITORING ============
   tautulli:
     container_name: tautulli
