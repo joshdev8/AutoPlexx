@@ -51,6 +51,16 @@ export const SERVICES: readonly ServiceDef[] = [
     blurb: 'Central media server',
   },
   {
+    id: 'jellyfin',
+    name: 'Jellyfin',
+    mono: 'JF',
+    container: 'jellyfin',
+    group: 'media',
+    hue: 'violet',
+    port: 8096,
+    blurb: 'Alternative media server',
+  },
+  {
     id: 'seerr',
     name: 'Seerr',
     mono: 'SE',
