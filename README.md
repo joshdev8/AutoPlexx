@@ -137,6 +137,35 @@ Suggested captures: Plex web UI, Seerr discover page, Radarr/Sonarr libraries, T
 
 A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration is included for automated collections and overlays, but Kometa itself is not part of `docker-compose.yml` — see [Kometa Configuration](#kometa-configuration) for how to run it.
 
+<details>
+<summary><strong>Using Jellyfin instead of Plex</strong></summary>
+
+Plex has moved features behind Plex Pass over time. If you'd rather run
+[Jellyfin](https://jellyfin.org/) — free and fully open-source, no paid tier — the
+stack ships a ready-to-use Jellyfin service, commented out in `docker-compose.yml`.
+
+To switch:
+
+1. In `docker-compose.yml`, comment out the entire `plex:` service.
+2. Uncomment the `jellyfin:` service directly below it.
+3. `docker compose up -d`. Jellyfin's web UI is at `http://<host>:8096` — no claim token needed.
+
+**What still works, and what doesn't.** Jellyfin serves the same media library, but
+several companions in this stack talk to Plex's API specifically:
+
+| Works with Jellyfin as-is | Plex-only (won't work against Jellyfin) |
+|---------------------------|------------------------------------------|
+| Radarr, Sonarr, Prowlarr, Bazarr | Tautulli (Plex analytics) |
+| Transmission | Watchlistarr (syncs the *Plex* watchlist) |
+| Seerr (supports a Jellyfin backend) | Kometa / Plex Meta Manager |
+| | Maintainerr |
+
+Because the dashboard's now-playing and poster panels read through Tautulli, those
+panels are Plex-bound too. Jellyfin-native replacements (e.g. Jellystat) are a possible
+future addition but aren't wired up here yet.
+
+</details>
+
 ### Content Management
 
 | Service | Description | Port |
