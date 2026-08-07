@@ -90,12 +90,27 @@ on bridge networks, so compose can neither link nor meaningfully order them. The
 reasoning applies to any future optional service: an optional service must have no
 dependents.
 
-**The dashboard catalog lists services that may not exist**, so a link to one must be
-suppressed rather than drawn dead. `launchUrl()` in `web/src/types.ts` is the single place
-that decides — it returns `null` for both "no UI port" and `state === 'absent'`. All four
-link sites (`Launcher`, `Sidebar`, `CommandSearch`, `Header`'s Request button) go through
-it; don't reintroduce a bare `serviceUrl(service.port)` at a call site. `down` deliberately
-still yields a URL, because the container exists and the user may be about to start it.
+**`launchUrl()` in `web/src/types.ts` is the single place that decides whether a service
+link is drawn.** All four link sites (`Launcher`, `Sidebar`, `CommandSearch`, `Header`'s
+Request button) go through it; don't reintroduce a bare `serviceUrl(service.port)` at a
+call site. It suppresses a link in exactly two cases — no UI port, or an `optional`
+service that is `absent` — and the narrowness is deliberate:
+
+- Only services flagged `optional: true` in `services.ts` (today: `plex` and `jellyfin`,
+  the two halves of the swap) lose their link when absent. **Don't flag a service compose
+  always defines.** A catalog entry also goes `absent` when its container is merely
+  *renamed*, and silently dropping a link that still works hides the mismatch instead of
+  surfacing it. Verified against a real host running `plexms`/`transmission-vpn`.
+- `absent` only counts when the socket proxy was actually reached, which is what the
+  `stateKnown` prop threads down from `App`. On a cold start with the proxy down,
+  `buildReport` reports *every* service absent — suppressing then would blank both media
+  tiles at the worst moment.
+- `down` still yields a URL: the container exists and the user may be about to start it.
+
+**The web workspace has tests** (`npm test --workspace=web`, `node --test` like the
+server). Pure logic belongs outside `.tsx` files so it stays testable — `search.ts` was
+split out of `CommandSearch.tsx` because anything importing the component tree reaches
+`import.meta.glob` in `ServiceIcon`, which plain `node --test` cannot evaluate.
 
 ## Kometa (plex-meta-manager) layout
 

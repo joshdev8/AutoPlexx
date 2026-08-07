@@ -13,6 +13,8 @@ interface Props {
   onToggleTheme: () => void;
   services: ServiceStatus[];
   groups: readonly { id: ServiceGroup; label: string }[];
+  /** Whether container state is trustworthy — see `launchUrl`. */
+  stateKnown: boolean;
   alerts: Alert[];
   onOpenSetup: () => void;
 }
@@ -24,6 +26,7 @@ export function Header({
   onToggleTheme,
   services,
   groups,
+  stateKnown,
   alerts,
   onOpenSetup,
 }: Props) {
@@ -63,8 +66,8 @@ export function Header({
       </div>
       <div style={{ flex: '1 0 var(--space-4)' }} />
 
-      <CommandSearch services={services} groups={groups} />
-      <RequestButton services={services} />
+      <CommandSearch services={services} groups={groups} stateKnown={stateKnown} />
+      <RequestButton services={services} stateKnown={stateKnown} />
       <Notifications alerts={alerts} onOpenSetup={onOpenSetup} />
 
       <button
@@ -89,12 +92,12 @@ export function Header({
  * Seerr already has accounts, approval rules and its own search; what the
  * header adds is the shortcut, not a second front door.
  */
-function RequestButton({ services }: { services: ServiceStatus[] }) {
+function RequestButton({ services, stateKnown }: { services: ServiceStatus[]; stateKnown: boolean }) {
   const seerr = services.find((service) => service.id === 'seerr');
 
   // Not in the catalog, absent from the host, or published without a UI port —
   // in each case there is nothing to link to, so no control is shown.
-  const href = seerr ? launchUrl(seerr) : null;
+  const href = seerr ? launchUrl(seerr, stateKnown) : null;
   if (!seerr || href === null) return null;
 
   if (seerr.state === 'down') {

@@ -36,6 +36,17 @@ export interface ServiceDef {
   port: number | null;
   /** One-line description, shown under the name in the Launcher. */
   blurb: string;
+  /**
+   * True when docker-compose.yml may legitimately not define this service, so
+   * `absent` means "the user chose not to run it" rather than "something is
+   * wrong". Only these lose their launch link when absent — see `launchUrl` in
+   * the web app. Set on both halves of the Plex/Jellyfin swap, since exactly
+   * one of them is uncommented at a time and the other's port leads nowhere.
+   *
+   * Do NOT set this on a service compose always defines. An `absent` Radarr
+   * means a real problem, and hiding its link would hide the problem too.
+   */
+  optional?: boolean;
 }
 
 export const SERVICES: readonly ServiceDef[] = [
@@ -49,6 +60,7 @@ export const SERVICES: readonly ServiceDef[] = [
     hue: 'amber',
     port: 32400,
     blurb: 'Central media server',
+    optional: true,
   },
   {
     id: 'jellyfin',
@@ -59,6 +71,7 @@ export const SERVICES: readonly ServiceDef[] = [
     hue: 'violet',
     port: 8096,
     blurb: 'Alternative media server',
+    optional: true,
   },
   {
     id: 'seerr',

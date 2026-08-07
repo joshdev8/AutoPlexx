@@ -4,78 +4,14 @@ import { MagnifyingGlass } from '@phosphor-icons/react';
 import { ServiceIcon } from './ServiceIcon';
 import { StatusDot } from './StatusDot';
 import { useDismissable } from '../hooks/useDismissable';
-import { launchUrl, type ServiceGroup, type ServiceStatus } from '../types';
+import { match, type Openable } from '../search';
+import { type ServiceGroup, type ServiceStatus } from '../types';
 
 interface Props {
   services: ServiceStatus[];
   groups: readonly { id: ServiceGroup; label: string }[];
-}
-
-const MAX_RESULTS = 7;
-
-/** A service is openable when it publishes a web UI and is actually installed. */
-interface Openable extends ServiceStatus {
-  port: number;
-  href: string;
-}
-
-export interface Matches {
-  /** Services that can actually be opened — the navigable results. */
-  openable: Openable[];
-  /** Matched services with nothing to open, named but not offered as results. */
-  unopenable: ServiceStatus[];
-}
-
-/**
- * Ranks a service against a query. Lower is better; `null` means no match.
- *
- * Name matches beat blurb matches, and a name that starts with the query beats
- * one that merely contains it — typing "so" should reach Sonarr before
- * Flaresolverr.
- */
-export function score(service: ServiceStatus, query: string): number | null {
-  const name = service.name.toLowerCase();
-  if (name.startsWith(query)) return 0;
-  if (name.includes(query)) return 1;
-  if (service.id.includes(query)) return 2;
-  if (service.blurb.toLowerCase().includes(query)) return 3;
-  return null;
-}
-
-/**
- * Filters the catalog for the search menu.
- *
- * Only services in a visible group are searchable, matching what the sidebar
- * and Launcher show — `system` services like the socket proxy have no UI and
- * aren't things a user navigates to.
- */
-export function match(
-  services: ServiceStatus[],
-  groups: readonly { id: ServiceGroup }[],
-  rawQuery: string,
-): Matches {
-  const query = rawQuery.trim().toLowerCase();
-  if (query === '') return { openable: [], unopenable: [] };
-
-  const visible = new Set(groups.map((group) => group.id));
-  const ranked = services
-    .filter((service) => visible.has(service.group))
-    .flatMap((service) => {
-      const rank = score(service, query);
-      return rank === null ? [] : [{ service, rank }];
-    })
-    .sort((a, b) => a.rank - b.rank || a.service.name.localeCompare(b.service.name));
-
-  const withHref = ranked.map(({ service }) => ({ service, href: launchUrl(service) }));
-
-  return {
-    openable: withHref
-      .flatMap(({ service, href }) =>
-        href === null || service.port === null ? [] : [{ ...service, port: service.port, href }],
-      )
-      .slice(0, MAX_RESULTS),
-    unopenable: withHref.flatMap(({ service, href }) => (href === null ? [service] : [])),
-  };
+  /** Whether container state is trustworthy — see `launchUrl`. */
+  stateKnown: boolean;
 }
 
 /**
@@ -87,7 +23,7 @@ export function match(
  * still named underneath when they match, because a user searching "watchtower"
  * deserves better than an empty menu.
  */
-export function CommandSearch({ services, groups }: Props) {
+export function CommandSearch({ services, groups, stateKnown }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -97,7 +33,10 @@ export function CommandSearch({ services, groups }: Props) {
   const close = () => setOpen(false);
   const wrapRef = useDismissable<HTMLDivElement>(open, close);
 
-  const { openable, unopenable } = useMemo(() => match(services, groups, query), [services, groups, query]);
+  const { openable, unopenable } = useMemo(
+    () => match(services, groups, query, stateKnown),
+    [services, groups, query, stateKnown],
+  );
 
   // Clamp rather than reset, so results narrowing under the cursor doesn't
   // leave the highlight pointing past the end of the list.

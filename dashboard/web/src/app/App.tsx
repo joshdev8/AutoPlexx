@@ -44,6 +44,11 @@ export function App() {
   const groups = catalog.data?.groups ?? [];
   const services = health.data?.services ?? catalog.data?.services ?? [];
 
+  // Whether an `absent` service really is uninstalled, or whether we simply
+  // couldn't reach the socket proxy — see `launchUrl`. The catalog fallback
+  // carries no state at all, so it's unaffected either way.
+  const stateKnown = health.data?.reachable === true;
+
   const alerts = useMemo(
     () => deriveAlerts(health.data, integrations.data?.integrations ?? []),
     [health.data, integrations.data],
@@ -75,7 +80,13 @@ export function App() {
         fontFamily: 'var(--font-body)',
       }}
     >
-      <Sidebar services={services} groups={groups} vpn={vpn.data} vpnLoading={vpn.loading} />
+      <Sidebar
+        services={services}
+        groups={groups}
+        stateKnown={stateKnown}
+        vpn={vpn.data}
+        vpnLoading={vpn.loading}
+      />
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Header
@@ -85,6 +96,7 @@ export function App() {
           onToggleTheme={toggleTheme}
           services={services}
           groups={groups}
+          stateKnown={stateKnown}
           alerts={alerts}
           onOpenSetup={() => setView('setup')}
         />
@@ -167,7 +179,7 @@ export function App() {
                 Loading services…
               </span>
             ) : (
-              <Launcher services={services} groups={groups} />
+              <Launcher services={services} groups={groups} stateKnown={stateKnown} />
             ))}
           {view === 'setup' && (
             <Setup integrations={integrations.data?.integrations ?? []} loading={integrations.loading} />

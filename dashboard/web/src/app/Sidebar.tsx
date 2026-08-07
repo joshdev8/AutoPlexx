@@ -7,12 +7,14 @@ import { launchUrl, type Result, type ServiceGroup, type ServiceStatus, type Vpn
 interface Props {
   services: ServiceStatus[];
   groups: readonly { id: ServiceGroup; label: string }[];
+  /** Whether container state is trustworthy — see `launchUrl`. */
+  stateKnown: boolean;
   vpn: Result<VpnStatus> | null;
   /** True only until the first /api/vpn response — see `VpnCard`. */
   vpnLoading: boolean;
 }
 
-export function Sidebar({ services, groups, vpn, vpnLoading }: Props) {
+export function Sidebar({ services, groups, stateKnown, vpn, vpnLoading }: Props) {
   const transmission = services.find((service) => service.id === 'transmission');
 
   return (
@@ -93,7 +95,7 @@ export function Sidebar({ services, groups, vpn, vpnLoading }: Props) {
             </h6>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {items.map((service) => (
-                <SidebarLink key={service.id} service={service} />
+                <SidebarLink key={service.id} service={service} stateKnown={stateKnown} />
               ))}
             </div>
           </nav>
@@ -107,8 +109,8 @@ export function Sidebar({ services, groups, vpn, vpnLoading }: Props) {
   );
 }
 
-function SidebarLink({ service }: { service: ServiceStatus }) {
-  const href = launchUrl(service);
+function SidebarLink({ service, stateKnown }: { service: ServiceStatus; stateKnown: boolean }) {
+  const href = launchUrl(service, stateKnown);
 
   const inner = (
     <>
