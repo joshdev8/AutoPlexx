@@ -13,6 +13,7 @@
 [![Issues](https://img.shields.io/github/issues/joshdev8/AutoPlexx?style=flat-square)](https://github.com/joshdev8/AutoPlexx/issues)
 [![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2+-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![Plex](https://img.shields.io/badge/Plex-EBAF00?style=flat-square&logo=plex&logoColor=black)](https://www.plex.tv/)
+[![Jellyfin](https://img.shields.io/badge/Jellyfin-optional-00A4DC?style=flat-square&logo=jellyfin&logoColor=white)](#using-jellyfin-instead-of-plex)
 
 </div>
 
@@ -24,11 +25,12 @@ A complete, opinionated [Plex Media Server](https://www.plex.tv/) stack delivere
 - **Pre-built Kometa config included** — IMDb Top 250 / Trakt / streaming-service collections, daily rotating playlists, and resolution/HDR overlays are ready to run, not a blank YAML you fill in over weeks.
 - **Network-isolated by design** — four separate Docker networks split streaming, request flow, downloading, and monitoring so a misbehaving service can't talk to the rest.
 - **Stream analytics in the box** — Tracearr ships built-in for concurrent-stream monitoring, geolocation, and account-sharing detection alongside Tautulli's usage reporting.
+- **Not locked to Plex** — a ready-to-run [Jellyfin](https://jellyfin.org/) service ships commented out, so swapping the media server is uncommenting a block rather than rebuilding the stack. [What that costs you](#using-jellyfin-instead-of-plex) is documented up front.
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
-- A Plex account and a [claim token](https://www.plex.tv/claim) — generate this **immediately before** your first `docker compose up`; claim tokens expire roughly 4 minutes after they're issued
+- A Plex account and a [claim token](https://www.plex.tv/claim) — generate this **immediately before** your first `docker compose up`; claim tokens expire roughly 4 minutes after they're issued. Not needed if you're [running Jellyfin instead](#using-jellyfin-instead-of-plex)
 - Values for `DB_PASSWORD`, `JWT_SECRET`, and `COOKIE_SECRET` in `.env` — Tracearr refuses to start without them and will fail the whole stack's `up` command
 - OpenVPN credentials from a [supported VPN provider](https://haugene.github.io/docker-transmission-openvpn/supported-providers/) (`OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, `OPENVPN_PASSWORD`) — Transmission tunnels all traffic through OpenVPN and won't start without them. See [Transmission VPN setup](#transmission-vpn-setup) for details
 
@@ -134,11 +136,15 @@ Suggested captures: Plex web UI, Seerr discover page, Radarr/Sonarr libraries, T
 | Service | Description | Port |
 |---------|-------------|------|
 | [Plex](https://www.plex.tv/) | Central media server | `32400` (host network) |
+| [Jellyfin](https://jellyfin.org/) | Open-source media server — optional drop-in *replacement* for Plex, shipped commented out | `8096` (host network) |
+
+Pick one media server, not both — they'd index the same library twice. Plex is the
+default and everything in the stack is wired for it; see [Using Jellyfin instead of
+Plex](#using-jellyfin-instead-of-plex) below for the swap and what it costs you.
 
 A ready-to-use [Kometa](https://kometa.wiki/) (Plex Meta Manager) configuration is included for automated collections and overlays, but Kometa itself is not part of `docker-compose.yml` — see [Kometa Configuration](#kometa-configuration) for how to run it.
 
-<details>
-<summary><strong>Using Jellyfin instead of Plex</strong></summary>
+### Using Jellyfin instead of Plex
 
 Plex has moved features behind Plex Pass over time. If you'd rather run
 [Jellyfin](https://jellyfin.org/) — free and fully open-source, no paid tier — the
@@ -157,14 +163,18 @@ several companions in this stack talk to Plex's API specifically:
 |---------------------------|------------------------------------------|
 | Radarr, Sonarr, Prowlarr, Bazarr | Tautulli (Plex analytics) |
 | Transmission | Watchlistarr (syncs the *Plex* watchlist) |
-| Seerr (supports a Jellyfin backend) | Kometa / Plex Meta Manager |
+| | Kometa / Plex Meta Manager |
 | | Maintainerr |
+
+**Seerr needs reconfiguring, not replacing.** Seerr does support a Jellyfin backend,
+but the media server is chosen during its setup and doesn't follow the compose swap. If
+you already onboarded Seerr against Plex, re-point it at Jellyfin in **Settings →
+Media Server** — otherwise approved requests keep going to a Plex server that is no
+longer running, with no error to tell you so.
 
 Because the dashboard's now-playing and poster panels read through Tautulli, those
 panels are Plex-bound too. Jellyfin-native replacements (e.g. Jellystat) are a possible
 future addition but aren't wired up here yet.
-
-</details>
 
 ### Content Management
 
