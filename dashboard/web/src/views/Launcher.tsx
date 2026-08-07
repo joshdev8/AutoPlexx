@@ -7,10 +7,12 @@ import { HUE_VAR, STATE_LABEL, launchUrl, type ServiceGroup, type ServiceStatus 
 interface Props {
   services: ServiceStatus[];
   groups: readonly { id: ServiceGroup; label: string }[];
+  /** Whether container state is trustworthy — see `launchUrl`. */
+  stateKnown: boolean;
 }
 
 /** The grouped grid of service tiles — the "open everything from one place" view. */
-export function Launcher({ services, groups }: Props) {
+export function Launcher({ services, groups, stateKnown }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
       {groups.map((group) => {
@@ -30,7 +32,7 @@ export function Launcher({ services, groups }: Props) {
               }}
             >
               {items.map((service) => (
-                <ServiceTile key={service.id} service={service} />
+                <ServiceTile key={service.id} service={service} stateKnown={stateKnown} />
               ))}
             </div>
           </section>
@@ -40,11 +42,11 @@ export function Launcher({ services, groups }: Props) {
   );
 }
 
-function ServiceTile({ service }: { service: ServiceStatus }) {
+function ServiceTile({ service, stateKnown }: { service: ServiceStatus; stateKnown: boolean }) {
   const color = HUE_VAR[service.hue];
   // Services with nothing to open — no UI port, or not installed — render as a
   // plain card rather than a dead link.
-  const href = launchUrl(service);
+  const href = launchUrl(service, stateKnown);
 
   const body = (
     <>

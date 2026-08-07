@@ -13,6 +13,8 @@ export interface Service {
   hue: Hue;
   port: number | null;
   blurb: string;
+  /** Compose may legitimately not define this service — see `launchUrl`. */
+  optional?: boolean;
 }
 
 export interface ServiceStatus extends Service {
@@ -68,15 +70,33 @@ export function serviceUrl(port: number): string {
  * drawn:
  *
  *  - the service publishes no UI port (Watchtower, the socket proxy);
- *  - the service isn't installed. The catalog lists services that are optional
- *    in `docker-compose.yml` — Jellyfin ships commented out — and linking to a
- *    port nothing is listening on is worse than showing no link at all.
+ *  - an `optional` service isn't installed. Only services flagged `optional` in
+ *    the catalog — the two halves of the Plex/Jellyfin swap — are suppressed
+ *    this way, because for them `absent` is a choice the user made and the port
+ *    leads nowhere.
+ *
+ * Everything else keeps its link even when absent. A catalog entry can go
+ * `absent` merely because the container was renamed, and silently removing a
+ * working link would hide that rather than surface it.
  *
  * `down` deliberately still yields a URL: the container exists and the user may
  * be about to start it.
+ *
+ * `stateKnown` is the report's `reachable` flag, and it matters more than it
+ * looks. When the socket proxy can't be reached on a cold start the server has
+ * no last-good report to fall back on, so it reports *every* service as
+ * `absent` (see `buildReport` in `sources/docker.ts`). Suppressing on `absent`
+ * alone would strip every link in the UI at exactly the moment a user most
+ * needs the launcher — a dead upstream blanking the page, which this app
+ * doesn't do. So `absent` only means "not installed" when we actually reached
+ * Docker; otherwise it means "don't know", and a link is better than no link.
  */
-export function launchUrl(service: Pick<ServiceStatus, 'port' | 'state'>): string | null {
-  if (service.port === null || service.state === 'absent') return null;
+export function launchUrl(
+  service: Pick<ServiceStatus, 'port' | 'state' | 'optional'>,
+  stateKnown = true,
+): string | null {
+  if (service.port === null) return null;
+  if (service.optional && service.state === 'absent' && stateKnown) return null;
   return serviceUrl(service.port);
 }
 
