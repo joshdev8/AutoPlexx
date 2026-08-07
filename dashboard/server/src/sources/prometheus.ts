@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { memoize } from '../cache.js';
-import { getJson, safely, type Result } from '../http.js';
+import { getJson, safely, upstreamHint, type Result } from '../http.js';
 
 /**
  * Resource gauges, from node-exporter via Prometheus.
@@ -112,7 +112,7 @@ async function load(): Promise<{ gauges: Gauge[] }> {
 }
 
 export const getMetrics = memoize<Result<{ gauges: Gauge[] }>>(
-  () => safely(load, 'Prometheus scrapes node-exporter; check both are running.'),
+  () => safely(load, upstreamHint({ name: 'Prometheus', urlVar: 'PROMETHEUS_URL' })),
   config.ttl.metrics,
 );
 

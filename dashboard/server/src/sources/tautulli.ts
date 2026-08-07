@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { credentialFor } from '../discovery.js';
-import { getJson, safely, unavailable, type Result } from '../http.js';
+import { getJson, safely, unavailable, upstreamHint, type Result } from '../http.js';
 import { plexPoster } from './posters.js';
 
 /** Now Playing, from Tautulli's `get_activity` command. */
@@ -169,7 +169,7 @@ export const getStreams = memoize<Result<StreamsPayload>>(async () => {
       credential.hint ?? undefined,
     );
   }
-  return safely(load);
+  return safely(load, upstreamHint({ name: 'Tautulli', urlVar: 'TAUTULLI_URL' }));
 }, config.ttl.streams);
 
 export const __test = { duration, mode, monogram, toStream };
