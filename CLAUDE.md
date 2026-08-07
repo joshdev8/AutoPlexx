@@ -77,8 +77,18 @@ token) directly under `plex:`; the intended workflow is to comment out one and u
 the other, per issue #56. The dashboard catalog (`services.ts`) already lists Jellyfin so
 its panel self-heals when enabled. Tautulli, Watchlistarr, Kometa, and Maintainerr are
 Plex-API-specific and do NOT work against Jellyfin — and since the dashboard's now-playing
-and poster panels read through Tautulli, those are Plex-bound too. Wiring Jellyfin-native
-companions is deliberately left as a follow-up.
+and poster panels read through Tautulli, those are Plex-bound too. Seerr does support a
+Jellyfin backend, but only after the media server is re-pointed in its own settings — the
+compose swap alone doesn't move it. Wiring Jellyfin-native companions is deliberately left
+as a follow-up.
+
+**Nothing may `depends_on: plex`.** Compose rejects a project whose `depends_on` names an
+undefined service, so a single such reference turns the documented Jellyfin swap into a
+hard failure for all 25 services — `config`, `up`, and even `down`. Tautulli used to carry
+one; it was removed. It bought nothing anyway, since Plex is host-network and its peers are
+on bridge networks, so compose can neither link nor meaningfully order them. The same
+reasoning applies to any future optional service: an optional service must have no
+dependents.
 
 ## Kometa (plex-meta-manager) layout
 

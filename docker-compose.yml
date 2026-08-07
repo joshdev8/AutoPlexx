@@ -43,8 +43,11 @@ services:
     image: tautulli/tautulli
     networks:
       - monitoring_network
-    depends_on:
-      - plex
+    # No `depends_on: plex` on purpose. Plex is host-network and Tautulli is on
+    # monitoring_network, so compose can't order or link them anyway — but a
+    # depends_on would make the whole project invalid the moment someone
+    # comments out `plex:` to run Jellyfin instead. Tautulli starts fine against
+    # an unreachable Plex and reconnects on its own.
     ports:
       - "8181:8181"
     environment:
