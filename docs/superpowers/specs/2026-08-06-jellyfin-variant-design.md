@@ -1,6 +1,6 @@
 # Jellyfin as a Plex alternative
 
-**Issue:** #56 ("JellyFin Variant")
+**Issue:** #56 ("Jellyfin Variant")
 **Date:** 2026-08-06
 **Branch:** `feat/jellyfin-variant`
 
@@ -13,8 +13,10 @@ Jellyfin as media servers, with the user commenting out the one they don't want.
 ## Approach
 
 Add Jellyfin as a **commented-out swap** for Plex, not an always-on second server.
-Plex stays the default; a user who wants Jellyfin comments out `plex:` and uncomments
-`jellyfin:`. This matches the issue author's mental model, introduces no new Compose
+Plex stays the default; a user who wants Jellyfin removes the running Plex container
+(`docker compose rm -sf plex`), then comments out `plex:` and uncomments `jellyfin:`.
+The removal has to come first: compose only manages services it can still see, so a
+commented-out `plex:` leaves its container running rather than tearing it down. This matches the issue author's mental model, introduces no new Compose
 concepts, and avoids the `depends_on` cascade that Compose profiles would trigger
 (only `tautulli` has `depends_on: plex`, but profiling `plex` would force `tautulli`
 and every other Plex companion to be profiled too).
@@ -50,8 +52,9 @@ service:
   (the same media tree the *arrs write to, so libraries are shared with a Plex install
   or a prior Plex layout).
 - `restart: unless-stopped`.
-- Header comment states the swap plainly: to use Jellyfin instead of Plex, comment out
-  the `plex:` service above and uncomment everything below.
+- Header comment states the swap plainly, including the `docker compose rm -sf plex`
+  that has to precede it: comment out the `plex:` service above and uncomment
+  everything below.
 
 No new network entry (host mode). No named volume added — the existing `plex:` named
 volume is itself vestigial (the service uses bind mounts), so that quirk is not mirrored.
@@ -59,9 +62,11 @@ volume is itself vestigial (the service uses bind mounts), so that quirk is not 
 ### 2. `.env.example` — comment only, no new vars
 
 Jellyfin needs nothing beyond the existing `PUID` / `PGID` / `TZ` / `USERDIR`. Add a
-short comment near the Plex vars pointing at the Jellyfin option. Deliberately introduce
-**no new env var**, so the "every var in `.env.example` is consumed by compose" contract
-stays intact (a var consumed only by a commented service would violate it).
+brief comment near the Plex vars pointing at the Jellyfin option. Deliberately introduce
+**no new env var**. `.env.example` today holds vars compose consumes, plus one documented
+exception — `RADARR_API_KEY` / `SONARR_API_KEY`, which the user fills in after first boot
+because the *arr UIs don't exist until then. A var consumed only by a commented-out
+service would be a third category with no such justification, so Jellyfin gets none.
 
 ### 3. Dashboard catalog — `dashboard/server/src/services.ts`
 
