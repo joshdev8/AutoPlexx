@@ -37,6 +37,18 @@ export interface HealthReport {
   attention: string[];
   /** False when the socket proxy is unreachable; the UI says so explicitly. */
   reachable: boolean;
+  /**
+   * Whether the per-service `state` values were actually observed, as opposed
+   * to placeholders. This is NOT the inverse of `reachable`, and the difference
+   * matters: an outage *after* a successful poll still carries real states, just
+   * stale ones, so this stays true while `reachable` goes false. It is only
+   * false on the cold path, where nothing has ever been observed and every
+   * service is reported `absent` because we have nothing better to say.
+   *
+   * The UI keys "is this service really missing" off this rather than
+   * `reachable` — see `launchUrl` in the web app.
+   */
+  statesKnown: boolean;
 }
 
 function classify(container: DockerContainer): ServiceState {
@@ -89,13 +101,16 @@ async function buildReport(): Promise<HealthReport> {
     // real data flagged as stale rather than an empty stack.
     if (lastGoodReport) return { ...lastGoodReport, reachable: false };
 
-    // Nothing known yet — this is the first call and it failed.
+    // Nothing known yet — this is the first call and it failed. Every service
+    // reads `absent` here as a placeholder, not an observation, which is what
+    // `statesKnown: false` tells the UI.
     return {
       services: SERVICES.map((service) => ({ ...service, state: 'absent', status: null })),
       up: 0,
       total: 0,
       attention: [],
       reachable: false,
+      statesKnown: false,
     };
   }
 
@@ -116,6 +131,7 @@ async function buildReport(): Promise<HealthReport> {
     total: present.length,
     attention: present.filter((s) => s.state === 'attn' || s.state === 'down').map((s) => s.name),
     reachable: true,
+    statesKnown: true,
   };
 
   lastGoodReport = report;

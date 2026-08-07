@@ -45,9 +45,12 @@ export function App() {
   const services = health.data?.services ?? catalog.data?.services ?? [];
 
   // Whether an `absent` service really is uninstalled, or whether we simply
-  // couldn't reach the socket proxy — see `launchUrl`. The catalog fallback
-  // carries no state at all, so it's unaffected either way.
-  const stateKnown = health.data?.reachable === true;
+  // never managed to read container state — see `launchUrl`. Keyed off
+  // `statesKnown`, NOT `reachable`: a blip after a successful poll keeps the
+  // real states and only marks them stale, so `reachable` alone would treat a
+  // known-absent service as unknown for the duration of every hiccup. The
+  // catalog fallback carries no state at all, so it's unaffected either way.
+  const stateKnown = health.data?.statesKnown === true;
 
   const alerts = useMemo(
     () => deriveAlerts(health.data, integrations.data?.integrations ?? []),

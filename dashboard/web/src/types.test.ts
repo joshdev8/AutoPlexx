@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { launchUrl, type ServiceStatus } from './types';
+import { isMissing, launchUrl, type ServiceStatus } from './types';
 
 // `serviceUrl` builds links against whatever host the dashboard was loaded
 // from, so these tests need a window to read. Set before importing anything
@@ -54,4 +54,22 @@ test('absent optional services still link when container state could not be read
 test('a UI-less service stays unopenable even when state is unknown', () => {
   // Port is static catalog data — unreachable Docker tells us nothing new.
   assert.equal(launchUrl(service({ port: null, state: 'absent' }), false), null);
+});
+
+test('isMissing separates a real absence from an unreadable one', () => {
+  // The header's Request shortcut hides itself on the first and not the second.
+  assert.equal(isMissing({ state: 'absent' }), true);
+  assert.equal(isMissing({ state: 'absent' }, false), false);
+  assert.equal(isMissing({ state: 'down' }), false);
+  assert.equal(isMissing({ state: 'up' }), false);
+});
+
+test('isMissing is true for a non-optional service, even though launchUrl links it', () => {
+  // The regression this guards: narrowing launchUrl to `optional` services left
+  // the Request button rendering a live link to an absent Seerr, because it had
+  // delegated its own absence check to launchUrl. The two questions are
+  // different and both callers need the right one.
+  const seerr = service({ state: 'absent', port: 5055 });
+  assert.equal(launchUrl(seerr), 'http://nas.local:5055');
+  assert.equal(isMissing(seerr), true);
 });
