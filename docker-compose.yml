@@ -1,10 +1,17 @@
 name: autoplexx
 
 services:
+  # LinuxServer images are pulled from lscr.io, their own registry, rather than
+  # the bare `linuxserver/*` Docker Hub names. Same images, but anonymous Docker
+  # Hub pulls are rate-limited (and on some hosts refused outright), and a first
+  # `docker compose up` on this stack is a couple of dozen pulls at once —
+  # exactly when hitting a limit is most likely and most confusing. Only the
+  # LinuxServer images can move; the rest have no equivalent mirror.
+
   # ============ MEDIA SERVER ============
   plex:
     container_name: plex
-    image: linuxserver/plex
+    image: lscr.io/linuxserver/plex
     network_mode: "host"
     environment:
       - PUID=${PUID}
@@ -26,7 +33,7 @@ services:
   # Plex" section for the full compatibility list.
   # jellyfin:
   #   container_name: jellyfin
-  #   image: linuxserver/jellyfin
+  #   image: lscr.io/linuxserver/jellyfin
   #   network_mode: "host"
   #   environment:
   #     - PUID=${PUID}
@@ -250,7 +257,7 @@ services:
 
   radarr:
     container_name: radarr
-    image: linuxserver/radarr
+    image: lscr.io/linuxserver/radarr
     networks:
       - media_network
       - download_network
@@ -267,7 +274,7 @@ services:
 
   sonarr:
     container_name: sonarr
-    image: linuxserver/sonarr
+    image: lscr.io/linuxserver/sonarr
     networks:
       - media_network
       - download_network
@@ -284,7 +291,7 @@ services:
 
   prowlarr:
     container_name: prowlarr
-    image: linuxserver/prowlarr
+    image: lscr.io/linuxserver/prowlarr
     networks:
       - media_network
     ports:
@@ -299,7 +306,7 @@ services:
 
   bazarr:
     container_name: bazarr
-    image: linuxserver/bazarr
+    image: lscr.io/linuxserver/bazarr
     networks:
       - media_network
     ports:
