@@ -117,6 +117,21 @@ test('yamlValue strips quotes around a value', () => {
   assert.equal(yamlValue('auth:\n  apikey: "quoted456"\n', 'auth', 'apikey'), 'quoted456');
 });
 
+test('yamlValue drops a trailing comment from an unquoted value', () => {
+  assert.equal(
+    yamlValue('auth:\n  apikey: bazarrkey123 # generated key\n', 'auth', 'apikey'),
+    'bazarrkey123',
+  );
+});
+
+test('yamlValue keeps a # that is inside quotes', () => {
+  assert.equal(yamlValue('auth:\n  apikey: "key#123"\n', 'auth', 'apikey'), 'key#123');
+  assert.equal(
+    yamlValue("auth:\n  apikey: 'key#123' # generated key\n", 'auth', 'apikey'),
+    'key#123',
+  );
+});
+
 test('yamlValue reads the base_url Bazarr serves under', () => {
   assert.equal(yamlValue('general:\n  base_url: /bazarr\n', 'general', 'base_url'), '/bazarr');
 });

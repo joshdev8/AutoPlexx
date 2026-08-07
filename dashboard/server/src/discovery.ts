@@ -153,9 +153,15 @@ function yamlValue(yaml: string, section: string, key: string): string | null {
     if (separator === -1) continue;
     if (rawLine.slice(0, separator).trim() !== key) continue;
 
-    const value = rawLine.slice(separator + 1).trim();
-    // Bazarr quotes some values and not others, and writes '' for unset.
-    return value.replace(/^['"]|['"]$/g, '').trim() || null;
+    // Bazarr quotes some values and not others, and writes '' for unset. Its
+    // config.yaml is round-tripped by ruamel, so a comment a user adds by hand
+    // survives every rewrite — and ` # note` trailing an unquoted key would
+    // otherwise become part of the credential. Inside quotes a `#` is data,
+    // so the comment is only stripped from the unquoted form.
+    const raw = rawLine.slice(separator + 1).trim();
+    const quoted = /^(['"])((?:(?!\1).)*)\1/.exec(raw);
+    const value = quoted ? quoted[2] : raw.replace(/\s+#.*$/, '').trim();
+    return value || null;
   }
 
   return null;
