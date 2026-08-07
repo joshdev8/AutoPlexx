@@ -4,7 +4,7 @@ import { MagnifyingGlass } from '@phosphor-icons/react';
 import { ServiceIcon } from './ServiceIcon';
 import { StatusDot } from './StatusDot';
 import { useDismissable } from '../hooks/useDismissable';
-import { serviceUrl, type ServiceGroup, type ServiceStatus } from '../types';
+import { launchUrl, type ServiceGroup, type ServiceStatus } from '../types';
 
 interface Props {
   services: ServiceStatus[];
@@ -13,16 +13,17 @@ interface Props {
 
 const MAX_RESULTS = 7;
 
-/** A service is openable when it publishes a web UI. */
+/** A service is openable when it publishes a web UI and is actually installed. */
 interface Openable extends ServiceStatus {
   port: number;
+  href: string;
 }
 
 export interface Matches {
   /** Services that can actually be opened — the navigable results. */
   openable: Openable[];
-  /** Matched services with no web UI, named but not offered as results. */
-  uiless: ServiceStatus[];
+  /** Matched services with nothing to open, named but not offered as results. */
+  unopenable: ServiceStatus[];
 }
 
 /**
@@ -54,7 +55,7 @@ export function match(
   rawQuery: string,
 ): Matches {
   const query = rawQuery.trim().toLowerCase();
-  if (query === '') return { openable: [], uiless: [] };
+  if (query === '') return { openable: [], unopenable: [] };
 
   const visible = new Set(groups.map((group) => group.id));
   const ranked = services
@@ -65,21 +66,26 @@ export function match(
     })
     .sort((a, b) => a.rank - b.rank || a.service.name.localeCompare(b.service.name));
 
+  const withHref = ranked.map(({ service }) => ({ service, href: launchUrl(service) }));
+
   return {
-    openable: ranked
-      .flatMap(({ service }) => (service.port === null ? [] : [{ ...service, port: service.port }]))
+    openable: withHref
+      .flatMap(({ service, href }) =>
+        href === null || service.port === null ? [] : [{ ...service, port: service.port, href }],
+      )
       .slice(0, MAX_RESULTS),
-    uiless: ranked.flatMap(({ service }) => (service.port === null ? [service] : [])),
+    unopenable: withHref.flatMap(({ service, href }) => (href === null ? [service] : [])),
   };
 }
 
 /**
  * The header's service search.
  *
- * The one action a result can take is "open this service", so services without
- * a web UI aren't offered as results — they'd be rows that do nothing on Enter.
- * They're still named underneath when they match, because a user searching
- * "watchtower" deserves better than an empty menu.
+ * The one action a result can take is "open this service", so services with
+ * nothing to open — no web UI, or not installed — aren't offered as results;
+ * they'd be rows that do nothing on Enter, or worse, open a dead tab. They're
+ * still named underneath when they match, because a user searching "watchtower"
+ * deserves better than an empty menu.
  */
 export function CommandSearch({ services, groups }: Props) {
   const [query, setQuery] = useState('');
@@ -91,7 +97,7 @@ export function CommandSearch({ services, groups }: Props) {
   const close = () => setOpen(false);
   const wrapRef = useDismissable<HTMLDivElement>(open, close);
 
-  const { openable, uiless } = useMemo(() => match(services, groups, query), [services, groups, query]);
+  const { openable, unopenable } = useMemo(() => match(services, groups, query), [services, groups, query]);
 
   // Clamp rather than reset, so results narrowing under the cursor doesn't
   // leave the highlight pointing past the end of the list.
@@ -121,7 +127,7 @@ export function CommandSearch({ services, groups }: Props) {
   }, []);
 
   const openService = (service: Openable) => {
-    window.open(serviceUrl(service.port), '_blank', 'noopener,noreferrer');
+    window.open(service.href, '_blank', 'noopener,noreferrer');
     setQuery('');
     close();
   };
@@ -231,7 +237,7 @@ export function CommandSearch({ services, groups }: Props) {
             )}
           </ul>
 
-          {uiless.length > 0 && (
+          {unopenable.length > 0 && (
             <div
               className="text-muted"
               style={{
@@ -240,7 +246,7 @@ export function CommandSearch({ services, groups }: Props) {
                 fontSize: 11,
               }}
             >
-              Also matched, no web UI: {uiless.map((service) => service.name).join(', ')}
+              Also matched, nothing to open: {unopenable.map((service) => service.name).join(', ')}
             </div>
           )}
         </div>

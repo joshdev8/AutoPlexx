@@ -2,7 +2,7 @@ import { ArrowUpRight } from '@phosphor-icons/react';
 
 import { ServiceIcon } from '../components/ServiceIcon';
 import { StatusDot } from '../components/StatusDot';
-import { HUE_VAR, STATE_LABEL, serviceUrl, type ServiceGroup, type ServiceStatus } from '../types';
+import { HUE_VAR, STATE_LABEL, launchUrl, type ServiceGroup, type ServiceStatus } from '../types';
 
 interface Props {
   services: ServiceStatus[];
@@ -42,9 +42,9 @@ export function Launcher({ services, groups }: Props) {
 
 function ServiceTile({ service }: { service: ServiceStatus }) {
   const color = HUE_VAR[service.hue];
-  // Services without a published port have no UI to open, so they render as a
+  // Services with nothing to open — no UI port, or not installed — render as a
   // plain card rather than a dead link.
-  const href = service.port === null ? null : serviceUrl(service.port);
+  const href = launchUrl(service);
 
   const body = (
     <>

@@ -2,7 +2,7 @@ import { Shield, ShieldWarning } from '@phosphor-icons/react';
 
 import { ServiceIcon } from '../components/ServiceIcon';
 import { StatusDot } from '../components/StatusDot';
-import { serviceUrl, type Result, type ServiceGroup, type ServiceStatus, type VpnStatus } from '../types';
+import { launchUrl, type Result, type ServiceGroup, type ServiceStatus, type VpnStatus } from '../types';
 
 interface Props {
   services: ServiceStatus[];
@@ -108,7 +108,7 @@ export function Sidebar({ services, groups, vpn, vpnLoading }: Props) {
 }
 
 function SidebarLink({ service }: { service: ServiceStatus }) {
-  const href = service.port === null ? null : serviceUrl(service.port);
+  const href = launchUrl(service);
 
   const inner = (
     <>
