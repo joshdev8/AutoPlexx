@@ -123,7 +123,77 @@ function iniValue(ini: string, section: string, key: string): string | null {
   return null;
 }
 
-/** Sonarr / Radarr / Prowlarr / Bazarr all use the same `config.xml` shape. */
+/**
+ * Reads `key: value` from a top-level YAML section, for Bazarr's config.yaml.
+ *
+ * Same reasoning as `iniValue`: a YAML dependency for two scalars out of a file
+ * this stack writes itself isn't proportionate, and the section boundary has to
+ * be exact. Bazarr stores an `apikey` under a dozen sections — including
+ * `radarr:` and `sonarr:`, whose keys belong to those services — so a document-
+ * wide search for the first `apikey` would eventually hand back someone else's
+ * credential. Only two-level `section: / key: value` is understood, which is
+ * all the values read here are.
+ */
+function yamlValue(yaml: string, section: string, key: string): string | null {
+  let inSection = false;
+
+  for (const rawLine of yaml.split(/\r?\n/)) {
+    if (!rawLine.trim() || rawLine.trimStart().startsWith('#')) continue;
+
+    // A top-level key is unindented; anything indented belongs to the current
+    // one. This is what keeps `radarr:`'s apikey out of `auth:`.
+    if (!/^\s/.test(rawLine)) {
+      inSection = rawLine.split(':')[0]?.trim() === section;
+      continue;
+    }
+
+    if (!inSection) continue;
+
+    const separator = rawLine.indexOf(':');
+    if (separator === -1) continue;
+    if (rawLine.slice(0, separator).trim() !== key) continue;
+
+    const value = rawLine.slice(separator + 1).trim();
+    // Bazarr quotes some values and not others, and writes '' for unset.
+    return value.replace(/^['"]|['"]$/g, '').trim() || null;
+  }
+
+  return null;
+}
+
+/**
+ * Bazarr, which despite sitting alongside the *arrs shares none of their
+ * config format.
+ *
+ * It is Python, not .NET: there is no `config.xml` anywhere in its tree, and
+ * treating it as an *arr left this integration permanently `waiting` while
+ * telling the user to start Bazarr — advice that could never help, because
+ * Bazarr had already written the config we weren't reading. The key lives at
+ * `config/config.yaml` *inside* the config directory, so it is reachable
+ * through the existing `${USERDIR}/bazarr/config` mount with no compose change.
+ */
+async function discoverBazarr(): Promise<Omit<Credential, 'source'>> {
+  const yaml = await readIfPresent(join(DISCOVER_ROOT, 'bazarr', 'config', 'config.yaml'));
+  if (!yaml) {
+    return { apiKey: null, state: 'waiting', origin: 'none', hint: WAITING_HINT.bazarr, urlBase: '' };
+  }
+
+  const apiKey = yamlValue(yaml, 'auth', 'apikey');
+  const urlBase = yamlValue(yaml, 'general', 'base_url') ?? '';
+
+  if (!apiKey) {
+    return {
+      apiKey: null,
+      state: 'waiting',
+      origin: 'none',
+      hint: 'Found Bazarr’s config.yaml but no auth.apikey in it yet.',
+      urlBase,
+    };
+  }
+  return { apiKey, state: 'live', origin: 'discovered', hint: null, urlBase };
+}
+
+/** Sonarr / Radarr / Prowlarr all use the same `config.xml` shape. */
 async function discoverArr(source: SourceId): Promise<Omit<Credential, 'source'>> {
   const xml = await readIfPresent(join(DISCOVER_ROOT, source, 'config.xml'));
   if (!xml) {
@@ -221,7 +291,9 @@ async function discoverOne(source: SourceId): Promise<Credential> {
       ? await discoverTautulli()
       : source === 'seerr'
         ? await discoverSeerr()
-        : await discoverArr(source);
+        : source === 'bazarr'
+          ? await discoverBazarr()
+          : await discoverArr(source);
 
   return { source, ...found };
 }
@@ -247,4 +319,4 @@ export async function credentialFor(source: SourceId): Promise<Credential> {
   return (await getCredentials())[source];
 }
 
-export const __test = { xmlTag, iniValue, SOURCES, ENV_VAR };
+export const __test = { xmlTag, iniValue, yamlValue, SOURCES, ENV_VAR };
