@@ -90,6 +90,13 @@ on bridge networks, so compose can neither link nor meaningfully order them. The
 reasoning applies to any future optional service: an optional service must have no
 dependents.
 
+**The dashboard catalog lists services that may not exist**, so a link to one must be
+suppressed rather than drawn dead. `launchUrl()` in `web/src/types.ts` is the single place
+that decides — it returns `null` for both "no UI port" and `state === 'absent'`. All four
+link sites (`Launcher`, `Sidebar`, `CommandSearch`, `Header`'s Request button) go through
+it; don't reintroduce a bare `serviceUrl(service.port)` at a call site. `down` deliberately
+still yields a URL, because the container exists and the user may be about to start it.
+
 ## Kometa (plex-meta-manager) layout
 
 The mounted config directory is `plex-meta-manager/config/`. Its structure is referenced explicitly by `config.yml`:

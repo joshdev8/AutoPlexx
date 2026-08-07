@@ -62,6 +62,24 @@ export function serviceUrl(port: number): string {
   return `${window.location.protocol}//${window.location.hostname}:${port}`;
 }
 
+/**
+ * Where a service's web UI can be opened, or `null` when there's nothing to
+ * open. Two reasons for `null`, and both must be honoured everywhere a link is
+ * drawn:
+ *
+ *  - the service publishes no UI port (Watchtower, the socket proxy);
+ *  - the service isn't installed. The catalog lists services that are optional
+ *    in `docker-compose.yml` — Jellyfin ships commented out — and linking to a
+ *    port nothing is listening on is worse than showing no link at all.
+ *
+ * `down` deliberately still yields a URL: the container exists and the user may
+ * be about to start it.
+ */
+export function launchUrl(service: Pick<ServiceStatus, 'port' | 'state'>): string | null {
+  if (service.port === null || service.state === 'absent') return null;
+  return serviceUrl(service.port);
+}
+
 // ---- Widget payloads (mirrors the server's source modules) ------------------
 
 /**

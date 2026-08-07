@@ -2,7 +2,7 @@ import { ArrowUpRight, Moon, Plus, Sun } from '@phosphor-icons/react';
 
 import { CommandSearch } from '../components/CommandSearch';
 import { Notifications } from '../components/Notifications';
-import { serviceUrl, type ServiceGroup, type ServiceStatus } from '../types';
+import { launchUrl, type ServiceGroup, type ServiceStatus } from '../types';
 import type { Alert } from '../alerts';
 import type { Theme } from '../hooks/useTheme';
 
@@ -94,7 +94,8 @@ function RequestButton({ services }: { services: ServiceStatus[] }) {
 
   // Not in the catalog, absent from the host, or published without a UI port —
   // in each case there is nothing to link to, so no control is shown.
-  if (!seerr || seerr.state === 'absent' || seerr.port === null) return null;
+  const href = seerr ? launchUrl(seerr) : null;
+  if (!seerr || href === null) return null;
 
   if (seerr.state === 'down') {
     return (
@@ -108,7 +109,7 @@ function RequestButton({ services }: { services: ServiceStatus[] }) {
   return (
     <a
       className="btn btn-primary"
-      href={serviceUrl(seerr.port)}
+      href={href}
       target="_blank"
       rel="noreferrer"
       title="Request a movie or series in Seerr"
