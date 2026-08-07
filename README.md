@@ -152,9 +152,14 @@ stack ships a ready-to-use Jellyfin service, commented out in `docker-compose.ym
 
 To switch:
 
-1. In `docker-compose.yml`, comment out the entire `plex:` service.
-2. Uncomment the `jellyfin:` service directly below it.
-3. `docker compose up -d`. Jellyfin's web UI is at `http://<host>:8096` — no claim token needed.
+1. `docker compose rm -sf plex` — stop and remove Plex *before* editing the file.
+   Do this first: once `plex:` is commented out Compose no longer knows the service
+   exists, so `docker compose up -d` won't touch the container. It keeps running on
+   host networking, and you end up with both media servers indexing the library —
+   the one thing this section exists to avoid.
+2. In `docker-compose.yml`, comment out the entire `plex:` service.
+3. Uncomment the `jellyfin:` service directly below it.
+4. `docker compose up -d`. Jellyfin's web UI is at `http://<host>:8096` — no claim token needed.
 
 **What still works, and what doesn't.** Jellyfin serves the same media library, but
 several companions in this stack talk to Plex's API specifically:

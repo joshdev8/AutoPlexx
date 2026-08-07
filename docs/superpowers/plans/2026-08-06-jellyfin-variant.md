@@ -11,9 +11,9 @@
 ## Global Constraints
 
 - **Never remove the `image:` line** from the dashboard service in favour of `build:` alone (public repo must pull, not build on first `up`).
-- **`docker compose config` fails on `.env.example` blanks** for `${VAR:?...}` vars — validate by copying `.env.example` to `.env` and filling throwaway values for `DB_PASSWORD`, `JWT_SECRET`, `COOKIE_SECRET`, `OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, `OPENVPN_PASSWORD`, exactly as `.github/workflows/compose-validate.yml` does.
+- **`docker compose config` fails on `.env.example` blanks** for `${VAR:?...}` vars — validate against a throwaway copy of `.env.example` passed with `--env-file`, filling `DB_PASSWORD`, `JWT_SECRET`, `COOKIE_SECRET`, `OPENVPN_PROVIDER`, `OPENVPN_CONFIG`, `OPENVPN_USERNAME`, `OPENVPN_PASSWORD`, as `.github/workflows/compose-validate.yml` does. **Never write to the repo's own `.env`** — it holds the contributor's real credentials.
 - **A dashboard `container` field must equal `container_name` in compose exactly**, or health lookups silently report `absent`.
-- **No new consumed env var** — every var in `.env.example` must be consumed by compose; a var used only by a commented service would violate this, so Jellyfin gets a comment, not a new var.
+- **No new env var** — `.env.example` stays as it is. Vars there are consumed by compose, with the documented exception of `RADARR_API_KEY` / `SONARR_API_KEY`, which Decluttarr's user fills in after first boot; that exception is not a licence to add more. A var used only by a commented-out service would be a third kind, so Jellyfin gets a comment, not a new var.
 - **Jellyfin has no claim token** — do not add a `PLEX_CLAIM` analogue.
 - **Self-hosted media stacks may have no outbound internet** — do not introduce CDN/remote asset dependencies.
 
@@ -36,8 +36,11 @@ Insert the following immediately after the `plex:` service's `restart: unless-st
 
   # ---- Optional: Jellyfin (Plex alternative) ----
   # Jellyfin is a free, fully open-source media server with no paid tier. To use
-  # it INSTEAD of Plex: comment out the entire `plex:` service above, then
-  # uncomment the `jellyfin:` service below and run `docker compose up -d`.
+  # it INSTEAD of Plex: run `docker compose rm -sf plex` FIRST, then comment out
+  # the entire `plex:` service above, uncomment the `jellyfin:` service below,
+  # and run `docker compose up -d`. Removing Plex first matters: a commented-out
+  # service is invisible to compose, so `up -d` would leave the old container
+  # running and you'd have both media servers on the same library.
   # Jellyfin's web UI is on http://<host>:8096 and needs no claim token.
   # Heads up: Tautulli, Watchlistarr, Kometa, and Maintainerr are Plex-only and
   # will NOT work against Jellyfin — see the README "Using Jellyfin instead of
@@ -56,10 +59,18 @@ Insert the following immediately after the `plex:` service's `restart: unless-st
   #   restart: unless-stopped
 ```
 
-- [ ] **Step 2: Verify the default (Plex) file still validates**
+- [ ] **Step 2: Verify both the default (Plex) file and the enabled Jellyfin block validate**
+
+One block, because the throwaway env file and the scratch copy have to outlive each
+other. Everything lands in a `mktemp -d` directory removed by a trap, so the repo's
+`docker-compose.yml` and — importantly — the contributor's real `.env` are never touched:
 
 ```bash
-cp .env.example .env
+SCRATCH="$(mktemp -d)"
+trap 'rm -rf "$SCRATCH"' EXIT
+
+# A throwaway env file, never the repo's own .env.
+cp .env.example "$SCRATCH/env"
 {
   echo "DB_PASSWORD=ci-validation"
   echo "JWT_SECRET=ci-validation"
@@ -68,34 +79,22 @@ cp .env.example .env
   echo "OPENVPN_CONFIG=ci-validation"
   echo "OPENVPN_USERNAME=ci-validation"
   echo "OPENVPN_PASSWORD=ci-validation"
-} >> .env
-docker compose config --quiet && echo "DEFAULT OK"
-```
-Expected: prints `DEFAULT OK` (the commented Jellyfin block is invisible to the parser; Plex is unchanged).
+} >> "$SCRATCH/env"
 
-- [ ] **Step 3: Verify the Jellyfin block is valid YAML when enabled**
+docker compose --env-file "$SCRATCH/env" config --quiet && echo "DEFAULT OK"
 
-Prove the block parses when a user uncomments it, using a scratch copy so the repo file is untouched:
-
-```bash
-SCRATCH="/tmp/claude-1000/-home-ongo-Desktop-projects-AutoPlexx/455cc4a1-500d-4c6a-8a27-2296ec5f36d5/scratchpad"
-mkdir -p "$SCRATCH"
+# Prove the block parses when a user uncomments it, on a scratch copy.
 cp docker-compose.yml "$SCRATCH/docker-compose.jellyfin.yml"
 # Uncomment ONLY the jellyfin service lines (the `#   ` / `# jellyfin:` forms),
 # leaving the `# ----`/prose comment lines alone.
 sed -i -E 's/^  # (jellyfin:)/  \1/; s/^  #   (.*)$/    \1/' "$SCRATCH/docker-compose.jellyfin.yml"
-docker compose -f "$SCRATCH/docker-compose.jellyfin.yml" --env-file .env config --quiet && echo "JELLYFIN BLOCK OK"
+docker compose -f "$SCRATCH/docker-compose.jellyfin.yml" --env-file "$SCRATCH/env" config --quiet \
+  && echo "JELLYFIN BLOCK OK"
 ```
-Expected: prints `JELLYFIN BLOCK OK`. If it fails, the indentation in the commented block is wrong — fix Step 1 and re-run.
+Expected: prints `DEFAULT OK` (the commented Jellyfin block is invisible to the parser; Plex is unchanged) then `JELLYFIN BLOCK OK`. If the second fails, the indentation in the commented block is wrong — fix Step 1 and re-run.
+(Everything lives outside the repo, so there is nothing to clean up for git.)
 
-- [ ] **Step 4: Clean up validation artifacts**
-
-```bash
-rm -f .env
-```
-(The scratch copy lives outside the repo and needs no cleanup for git.)
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add docker-compose.yml
@@ -199,7 +198,7 @@ future addition but aren't wired up here yet.
 
 In `.env.example`, replace the Plex section header comment (line 14, `# ============ Plex ============`) block so it notes the Jellyfin alternative without adding a variable. Change:
 
-```
+```dotenv
 # ============ Plex ============
 # Obtain immediately before `docker compose up -d`. Claim tokens expire in
 # roughly 4 minutes. See https://www.plex.tv/claim
@@ -208,7 +207,7 @@ PLEX_CLAIM=
 
 to:
 
-```
+```dotenv
 # ============ Plex ============
 # Obtain immediately before `docker compose up -d`. Claim tokens expire in
 # roughly 4 minutes. See https://www.plex.tv/claim

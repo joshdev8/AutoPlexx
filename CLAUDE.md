@@ -77,7 +77,11 @@ Radarr and Sonarr are deliberately on both `media_network` (so Seerr, Prowlarr, 
 **Jellyfin is an optional, commented-out swap for Plex.** `docker-compose.yml` carries a
 fully-formed but commented `jellyfin:` service (host network, port `8096`, no claim
 token) directly under `plex:`; the intended workflow is to comment out one and uncomment
-the other, per issue #56. The dashboard catalog (`services.ts`) already lists Jellyfin so
+the other, per issue #56. **The swap has to remove the outgoing container first**
+(`docker compose rm -sf plex`): compose only manages services it can see, so once `plex:`
+is commented out `up -d` leaves the old container running and the user quietly ends up
+with two media servers on one library. Advise the removal before the edit, not after.
+The dashboard catalog (`services.ts`) already lists Jellyfin so
 its panel self-heals when enabled. Tautulli, Watchlistarr, Kometa, and Maintainerr are
 Plex-API-specific and do NOT work against Jellyfin — and since the dashboard's now-playing
 and poster panels read through Tautulli, those are Plex-bound too. Seerr does support a

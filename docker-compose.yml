@@ -25,8 +25,11 @@ services:
 
   # ---- Optional: Jellyfin (Plex alternative) ----
   # Jellyfin is a free, fully open-source media server with no paid tier. To use
-  # it INSTEAD of Plex: comment out the entire `plex:` service above, then
-  # uncomment the `jellyfin:` service below and run `docker compose up -d`.
+  # it INSTEAD of Plex: run `docker compose rm -sf plex` FIRST, then comment out
+  # the entire `plex:` service above, uncomment the `jellyfin:` service below,
+  # and run `docker compose up -d`. Removing Plex first matters: a commented-out
+  # service is invisible to compose, so `up -d` would leave the old container
+  # running and you'd have both media servers on the same library.
   # Jellyfin's web UI is on http://<host>:8096 and needs no claim token.
   # Heads up: Tautulli, Watchlistarr, Kometa, and Maintainerr are Plex-only and
   # will NOT work against Jellyfin — see the README "Using Jellyfin instead of
