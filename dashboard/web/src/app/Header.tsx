@@ -2,7 +2,7 @@ import { ArrowUpRight, Moon, Plus, Sun } from '@phosphor-icons/react';
 
 import { CommandSearch } from '../components/CommandSearch';
 import { Notifications } from '../components/Notifications';
-import { launchUrl, type ServiceGroup, type ServiceStatus } from '../types';
+import { isMissing, launchUrl, type ServiceGroup, type ServiceStatus } from '../types';
 import type { Alert } from '../alerts';
 import type { Theme } from '../hooks/useTheme';
 
@@ -97,8 +97,14 @@ function RequestButton({ services, stateKnown }: { services: ServiceStatus[]; st
 
   // Not in the catalog, absent from the host, or published without a UI port —
   // in each case there is nothing to link to, so no control is shown.
+  //
+  // `absent` is asked separately because `launchUrl` only suppresses links for
+  // `optional` services and Seerr isn't one: a missing Seerr is a real problem,
+  // so the Launcher tile keeps its link to surface it. This shortcut is the one
+  // place that shouldn't — a Request button pointing at a Seerr that isn't on
+  // the host is worse than no button.
   const href = seerr ? launchUrl(seerr, stateKnown) : null;
-  if (!seerr || href === null) return null;
+  if (!seerr || href === null || isMissing(seerr, stateKnown)) return null;
 
   if (seerr.state === 'down') {
     return (

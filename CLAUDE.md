@@ -49,7 +49,8 @@ Things that aren't obvious:
 - `media_network` — seerr, radarr, sonarr, prowlarr, bazarr, flaresolverr, maintainerr, checkrr, dashboard
 - `download_network` — transmission, watchlistarr, cleanarr, requestrr, decluttarr, radarr, sonarr, dashboard
 - `tracearr-network` — tracearr, timescale (PostgreSQL), redis
-- **host network** — plex only (required for proper streaming/discovery)
+- **host network** — plex (required for proper streaming/discovery), or the optional
+  jellyfin that replaces it; exactly one of the two is uncommented at a time
 
 `dashboard` is on all three service networks because it aggregates from all of them. It reaches Plex — which is on the host network — via `host.docker.internal`, hence its `extra_hosts` entry.
 
@@ -101,11 +102,18 @@ service that is `absent` — and the narrowness is deliberate:
   always defines.** A catalog entry also goes `absent` when its container is merely
   *renamed*, and silently dropping a link that still works hides the mismatch instead of
   surfacing it. Verified against a real host running `plexms`/`transmission-vpn`.
-- `absent` only counts when the socket proxy was actually reached, which is what the
-  `stateKnown` prop threads down from `App`. On a cold start with the proxy down,
-  `buildReport` reports *every* service absent — suppressing then would blank both media
-  tiles at the worst moment.
+- `absent` only counts when it was actually observed. `isMissing()` is the single
+  predicate for that question, and the `stateKnown` prop that feeds it comes from the
+  report's **`statesKnown`, not `reachable`** — the two differ and the difference is the
+  whole point. A blip after a successful poll keeps the real states and only marks them
+  stale (`reachable: false`, `statesKnown: true`); only the cold path, where nothing was
+  ever observed, reports `statesKnown: false`. Keying off `reachable` made every hiccup
+  briefly re-link every absent optional service.
 - `down` still yields a URL: the container exists and the user may be about to start it.
+- **A caller that needs "is this service really missing" must call `isMissing()`, not
+  infer it from a null `launchUrl()`.** Those are different questions: `launchUrl` returns
+  a URL for an absent *non*-optional service by design. `Header`'s Request button
+  conflated them once already and rendered a live link to an uninstalled Seerr.
 
 **The web workspace has tests** (`npm test --workspace=web`, `node --test` like the
 server). Pure logic belongs outside `.tsx` files so it stays testable — `search.ts` was

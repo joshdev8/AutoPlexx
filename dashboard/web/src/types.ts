@@ -28,6 +28,12 @@ export interface HealthReport {
   total: number;
   attention: string[];
   reachable: boolean;
+  /**
+   * Whether the per-service states were observed rather than placeholders. Not
+   * the inverse of `reachable` — a blip after a good poll keeps real (stale)
+   * states, so this stays true. See the server's `HealthReport`.
+   */
+  statesKnown: boolean;
 }
 
 export const HUE_VAR: Record<Hue, string> = {
@@ -96,8 +102,24 @@ export function launchUrl(
   stateKnown = true,
 ): string | null {
   if (service.port === null) return null;
-  if (service.optional && service.state === 'absent' && stateKnown) return null;
+  if (service.optional && isMissing(service, stateKnown)) return null;
   return serviceUrl(service.port);
+}
+
+/**
+ * Whether a service is genuinely not on this host, as opposed to merely
+ * reported `absent` because container state couldn't be read.
+ *
+ * The single predicate for that question. `launchUrl` applies it only to
+ * `optional` services; callers that want it for a specific non-optional service
+ * — the header's Request shortcut, which has nothing to shortcut to when Seerr
+ * isn't installed — call it directly rather than reimplementing the check.
+ */
+export function isMissing(
+  service: Pick<ServiceStatus, 'state'>,
+  stateKnown = true,
+): boolean {
+  return service.state === 'absent' && stateKnown;
 }
 
 // ---- Widget payloads (mirrors the server's source modules) ------------------

@@ -71,6 +71,13 @@ test('a proxy outage keeps the last good report instead of blanking it', async (
     'up',
     'a transient outage must not flip services to absent',
   );
+  assert.equal(
+    degraded.statesKnown,
+    true,
+    'states are stale during a blip, but they were still observed — the UI keys ' +
+      'link suppression off this, and treating a hiccup as "unknown" would flip ' +
+      'every optional service back to linkable',
+  );
 });
 
 test('a failure before any successful poll reports nothing rather than lying', async (t) => {
@@ -90,6 +97,12 @@ test('a failure before any successful poll reports nothing rather than lying', a
   assert.equal(report.reachable, false);
   assert.equal(report.total, 0);
   assert.ok(report.services.every((s) => s.state === 'absent'));
+  assert.equal(
+    report.statesKnown,
+    false,
+    'nothing was ever observed, so those absents are placeholders and the UI ' +
+      'must not treat them as real absences',
+  );
 });
 
 test('catalog: ids and container names are unique', () => {
