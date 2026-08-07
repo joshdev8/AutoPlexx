@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { credentialFor } from '../discovery.js';
-import { safely, unavailable, type Result } from '../http.js';
+import { safely, unavailable, upstreamHint, type Result } from '../http.js';
 import { calendar, type CalendarEpisode } from './arr.js';
 
 /**
@@ -43,5 +43,5 @@ export const getUpcoming = memoize<Result<{ items: UpcomingItem[] }>>(async () =
   if (credential.state !== 'live') {
     return unavailable('Waiting for Sonarr', credential.hint ?? undefined);
   }
-  return safely(load);
+  return safely(load, upstreamHint({ name: 'Sonarr', urlVar: 'SONARR_URL' }));
 }, config.ttl.calendar);

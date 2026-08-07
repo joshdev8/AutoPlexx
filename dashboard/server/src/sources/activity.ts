@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { credentialFor } from '../discovery.js';
-import { safely, type Result } from '../http.js';
+import { safely, upstreamHint, type Result } from '../http.js';
 import { history } from './arr.js';
 
 /**
@@ -84,7 +84,9 @@ async function load(): Promise<{ items: ActivityItem[] }> {
 }
 
 export const getActivity = memoize<Result<{ items: ActivityItem[] }>>(
-  () => safely(load),
+  // Sonarr and Radarr both feed this and the reason can't say which failed,
+  // so the hint names the pair rather than guessing one of them.
+  () => safely(load, upstreamHint({ name: 'Sonarr/Radarr', urlVar: 'SONARR_URL / RADARR_URL' })),
   config.ttl.activity,
 );
 

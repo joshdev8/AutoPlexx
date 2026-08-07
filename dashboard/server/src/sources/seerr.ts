@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { memoize } from '../cache.js';
 import { credentialFor } from '../discovery.js';
-import { getJson, safely, unavailable, type Result } from '../http.js';
+import { getJson, safely, unavailable, upstreamHint, type Result } from '../http.js';
 import { tmdbPoster } from './posters.js';
 
 /** Content requests, from Seerr. */
@@ -187,7 +187,7 @@ export const getRequests = memoize<Result<RequestsPayload>>(async () => {
   if (credential.state !== 'live') {
     return unavailable('Waiting for Seerr', credential.hint ?? undefined);
   }
-  return safely(load);
+  return safely(load, upstreamHint({ name: 'Seerr', urlVar: 'SEERR_URL' }));
 }, config.ttl.requests);
 
 export const __test = { relative, statusOf, pendingCount, describe };
